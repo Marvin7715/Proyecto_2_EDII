@@ -1,0 +1,16 @@
+# Archivos temporales de Visual Studio
+.vs/
+**/.vs/
+../.vs/
+
+# Archivos generados durante la compilación
+**/bin/
+**/obj/
+
+# Configuraciones personales de Visual Studio
+*.user
+*.suo
+
+# Archivos temporales del sistema
+Thumbs.db
+.DS_Store

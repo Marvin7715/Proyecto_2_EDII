@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="TransRed.Consola/TransRed.Consola.csproj" />
+  <Project Path="TransRed.Core/TransRed.Core.csproj" />
+  <Project Path="TransRed.Interfaz/TransRed.Interfaz.csproj" />
+</Solution>
