@@ -43,6 +43,11 @@ public class LienzoRed : Control
         new(3, 4, true)
     };
 
+    // Guarda el nodo que tiene el cursor encima
+    private int nodoHover = -1;
+
+    // Guarda el nodo seleccionado con un clic
+    private int nodoSeleccionado = -1;
     public LienzoRed()
     {
         Dock = DockStyle.Fill;
@@ -58,6 +63,15 @@ public class LienzoRed : Control
             ControlStyles.ResizeRedraw,
             true
         );
+
+        // Detecta el movimiento del cursor
+        MouseMove += LienzoRed_MouseMove;
+
+        // Detecta cuando el cursor sale del lienzo
+        MouseLeave += LienzoRed_MouseLeave;
+
+        // Detecta la selección de una parada
+        MouseClick += LienzoRed_MouseClick;
     }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -90,6 +104,7 @@ public class LienzoRed : Control
         DibujarConexiones(g);
         DibujarParadas(g);
         DibujarLeyenda(g);
+        DibujarInformacionNodo(g);
     }
 
     // Cuadrícula de fondo
@@ -119,6 +134,64 @@ public class LienzoRed : Control
             margenX + parada.X * ancho,
             margenY + parada.Y * alto
         );
+    }
+    
+    private int BuscarNodo(Point posicion)
+    {
+        for (int i = 0; i < paradas.Length; i++)
+        {
+            PointF punto = ObtenerPosicion(paradas[i]);
+
+            float dx = posicion.X - punto.X;
+            float dy = posicion.Y - punto.Y;
+
+            float distanciaCuadrada = dx * dx + dy * dy;
+
+            // Verifica si el cursor está dentro del nodo
+            if (distanciaCuadrada <= 22 * 22)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private void LienzoRed_MouseMove(object? sender, MouseEventArgs e)
+    {
+        int nodoActual = BuscarNodo(e.Location);
+
+        if (nodoHover != nodoActual)
+        {
+            nodoHover = nodoActual;
+
+            Cursor = nodoHover >= 0
+                ? Cursors.Hand
+                : Cursors.Default;
+
+            Invalidate();
+        }
+    }
+
+    private void LienzoRed_MouseLeave(object? sender, EventArgs e)
+    {
+        nodoHover = -1;
+        Cursor = Cursors.Default;
+
+        Invalidate();
+    }
+
+    private void LienzoRed_MouseClick(object? sender, MouseEventArgs e)
+    {
+        if (e.Button != MouseButtons.Left)
+            return;
+
+        int nodo = BuscarNodo(e.Location);
+
+        // Clic fuera de los nodos limpia la selección
+        nodoSeleccionado = nodo;
+
+        Invalidate();
     }
 
     // Dibuja las conexiones antes que los nodos
@@ -204,14 +277,17 @@ public class LienzoRed : Control
         using Font fuenteNombre = new Font(
             "Segoe UI", 9, FontStyle.Regular);
 
-        using Brush fondoNodo =
+        using Brush fondoNormal =
             new SolidBrush(Color.White);
 
-        using Pen bordeNodo =
-            new Pen(TransRedTheme.Acento, 2.5f);
+        using Brush fondoSeleccionado =
+            new SolidBrush(TransRedTheme.Acento);
 
-        using Brush texto =
+        using Brush textoNormal =
             new SolidBrush(TransRedTheme.Tinta);
+
+        using Brush textoBlanco =
+            new SolidBrush(Color.White);
 
         using Brush textoSecundario =
             new SolidBrush(TransRedTheme.TextoSecundario);
@@ -222,11 +298,28 @@ public class LienzoRed : Control
             LineAlignment = StringAlignment.Center
         };
 
-        foreach (ParadaVisual parada in paradas)
+        for (int i = 0; i < paradas.Length; i++)
         {
+            ParadaVisual parada = paradas[i];
             PointF punto = ObtenerPosicion(parada);
 
-            const float radio = 19;
+            bool seleccionada = i == nodoSeleccionado;
+            bool encima = i == nodoHover;
+
+            float radio = seleccionada ? 23 : encima ? 21 : 19;
+
+            Color colorBorde = seleccionada || encima
+                ? TransRedTheme.Acento
+                : Color.FromArgb(104, 153, 139);
+
+            using Pen borde = new Pen(
+                colorBorde,
+                seleccionada ? 3.5f : 2.5f
+            );
+
+            Brush fondoNodo = seleccionada
+                ? fondoSeleccionado
+                : fondoNormal;
 
             g.FillEllipse(
                 fondoNodo,
@@ -237,7 +330,7 @@ public class LienzoRed : Control
             );
 
             g.DrawEllipse(
-                bordeNodo,
+                borde,
                 punto.X - radio,
                 punto.Y - radio,
                 radio * 2,
@@ -254,14 +347,14 @@ public class LienzoRed : Control
             g.DrawString(
                 parada.Codigo,
                 fuenteCodigo,
-                texto,
+                seleccionada ? textoBlanco : textoNormal,
                 areaCodigo,
                 centrado
             );
 
             RectangleF areaNombre = new RectangleF(
                 punto.X - 65,
-                punto.Y + 23,
+                punto.Y + 27,
                 130,
                 25
             );
@@ -328,4 +421,94 @@ public class LienzoRed : Control
         int Destino,
         bool Bidireccional
     );
+
+    private void DibujarInformacionNodo(Graphics g)
+    {
+        if (nodoSeleccionado < 0)
+            return;
+
+        ParadaVisual parada = paradas[nodoSeleccionado];
+
+        // Cuenta las conexiones asociadas a la parada
+        int cantidadConexiones = 0;
+
+        foreach (ConexionVisual conexion in conexiones)
+        {
+            if (conexion.Origen == nodoSeleccionado ||
+                conexion.Destino == nodoSeleccionado)
+            {
+                cantidadConexiones++;
+            }
+        }
+
+        int ancho = Math.Min(250, Width - 32);
+        int alto = 112;
+
+        int x = Width - ancho - 16;
+        int y = 44;
+
+        Rectangle tarjeta = new Rectangle(
+            x, y, ancho, alto
+        );
+
+        using Brush fondoTarjeta =
+            new SolidBrush(Color.White);
+
+        using Pen borde =
+            new Pen(Color.FromArgb(213, 228, 219));
+
+        g.FillRectangle(fondoTarjeta, tarjeta);
+        g.DrawRectangle(borde, tarjeta);
+
+        using Font fuenteEtiqueta =
+            new Font("Segoe UI", 8, FontStyle.Bold);
+
+        using Font fuenteTitulo =
+            new Font("Segoe UI", 12, FontStyle.Bold);
+
+        using Font fuenteDetalle =
+            new Font("Segoe UI", 9);
+
+        using Brush verde =
+            new SolidBrush(TransRedTheme.Acento);
+
+        using Brush tinta =
+            new SolidBrush(TransRedTheme.Tinta);
+
+        using Brush secundario =
+            new SolidBrush(TransRedTheme.TextoSecundario);
+
+        g.DrawString(
+            "PARADA SELECCIONADA",
+            fuenteEtiqueta,
+            verde,
+            x + 14,
+            y + 12
+        );
+
+        g.DrawString(
+            $"{parada.Codigo} · {parada.Nombre}",
+            fuenteTitulo,
+            tinta,
+            x + 14,
+            y + 36
+        );
+
+        g.DrawString(
+            $"Conexiones asociadas: {cantidadConexiones}",
+            fuenteDetalle,
+            secundario,
+            x + 14,
+            y + 70
+        );
+
+        g.DrawString(
+            "Datos de demostración",
+            fuenteDetalle,
+            secundario,
+            x + 14,
+            y + 89
+        );
+    }
+
 }
