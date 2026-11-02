@@ -1,4 +1,5 @@
 using TransRed.Interfaz.Design;
+using TransRed.Interfaz.Layout;
 
 namespace TransRed.Interfaz
 {
@@ -8,10 +9,13 @@ namespace TransRed.Interfaz
         {
             InitializeComponent();
 
-            // Aplicamos la identidad base a la ventana
+            // Tema base definido en el commit 1.1
             UiStyles.PrepararVentana(this);
             Text = "TransRed | Red de transporte";
             ClientSize = new Size(1100, 700);
+
+            // Distribución general de la interfaz
+            MainShell.Construir(this);
         }
     }
 }
