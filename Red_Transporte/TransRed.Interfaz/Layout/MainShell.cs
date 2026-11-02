@@ -4,7 +4,7 @@ using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using TransRed.Interfaz.Design;
 using TransRed.Interfaz.Components;
-
+using TransRed.Interfaz.Components;
 namespace TransRed.Interfaz.Layout;
 
 public static class MainShell
@@ -408,11 +408,10 @@ public static class MainShell
             0, 0);
 
         // Todo el mensaje se dibuja en un solo control
-        var estadoVacio = new EstadoRedVacia
+        var estadoVacio = new LienzoRed
         {
             Dock = DockStyle.Fill,
-            Margin = Padding.Empty,
-            BackColor = FondoRed
+            Margin = Padding.Empty
         };
 
         lienzo.Controls.Add(estadoVacio, 0, 1);
