@@ -4,7 +4,6 @@ using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using TransRed.Interfaz.Design;
 using TransRed.Interfaz.Components;
-using TransRed.Interfaz.Components;
 namespace TransRed.Interfaz.Layout;
 
 public static class MainShell
