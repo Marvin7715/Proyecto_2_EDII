@@ -1,9 +1,9 @@
-
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using TransRed.Interfaz.Design;
+using TransRed.Interfaz.Components;
 
 namespace TransRed.Interfaz.Layout;
 
@@ -18,6 +18,7 @@ public static class MainShell
     private static readonly Color TextoTenue =
         Color.FromArgb(124, 143, 135);
 
+    
     public static void Construir(Form ventana)
     {
         ventana.SuspendLayout();
@@ -45,13 +46,49 @@ public static class MainShell
         principal.RowStyles.Add(
             new RowStyle(SizeType.Absolute, 58));
 
+        // Espacio donde se muestran las diferentes vistas
+        var areaContenido = new Panel
+        {
+            Dock = DockStyle.Fill,
+            Margin = Padding.Empty,
+            BackColor = TransRedTheme.Fondo
+        };
+
+        // Cambia la vista sin abrir otra ventana
+        void MostrarSeccion(string seccion)
+        {
+            Control nuevaVista = seccion == "Explorar red"
+                ? CrearContenido()
+                : CrearVistaSeccion(seccion);
+
+            Control? anterior = areaContenido.Controls.Count > 0
+                ? areaContenido.Controls[0]
+                : null;
+
+            areaContenido.Controls.Add(nuevaVista);
+            nuevaVista.BringToFront();
+
+            if (anterior != null)
+            {
+                areaContenido.Controls.Remove(anterior);
+                anterior.Dispose();
+            }
+        }
+
+        var navegacion = new NavigationBar(MostrarSeccion);
+
         principal.Controls.Add(CrearEncabezado(), 0, 0);
-        principal.Controls.Add(CrearContenido(), 0, 1);
-        principal.Controls.Add(CrearNavegacion(), 0, 2);
+        principal.Controls.Add(areaContenido, 0, 1);
+        principal.Controls.Add(navegacion, 0, 2);
 
         ventana.Controls.Add(principal);
+
+        // Pantalla inicial
+        MostrarSeccion("Explorar red");
+
         ventana.ResumeLayout(true);
     }
+
 
     // Encabezado fijo y sin elementos superpuestos
     private static Control CrearEncabezado()
@@ -392,6 +429,79 @@ public static class MainShell
         lienzo.Controls.Add(pie, 0, 2);
 
         return lienzo;
+    }
+
+    private static Control CrearVistaSeccion(string seccion)
+    {
+        var datos = seccion switch
+        {
+            "Paradas" => (
+                "01 / GESTIÓN DE PARADAS",
+                "Administrar paradas",
+                "Aquí podrás registrar, buscar y consultar paradas"
+            ),
+
+            "Conexiones" => (
+                "02 / CONEXIONES",
+                "Conexiones de transporte",
+                "Aquí podrás administrar las conexiones de la red"
+            ),
+
+            "Planificar" => (
+                "03 / PLANIFICACIÓN",
+                "Planificar un recorrido",
+                "Aquí podrás consultar los recorridos disponibles"
+            ),
+
+            "Algoritmos" => (
+                "04 / ALGORITMOS",
+                "Explorar algoritmos",
+                "Aquí podrás visualizar BFS, DFS y conectividad"
+            ),
+
+            _ => (
+                "TRANSRED",
+                "Sección no disponible",
+                "Esta sección todavía no está configurada"
+            )
+        };
+
+        var contenedor = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = Padding.Empty,
+            Padding = new Padding(25, 22, 25, 22),
+            BackColor = TransRedTheme.Fondo
+        };
+
+        contenedor.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Percent, 100));
+
+        contenedor.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 44));
+
+        contenedor.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
+
+        var encabezado = CrearTexto(
+            datos.Item1,
+            9,
+            FontStyle.Bold,
+            TransRedTheme.Acento
+        );
+
+        var vista = new VistaSeccionVacia
+        {
+            TituloSeccion = datos.Item2,
+            Descripcion = datos.Item3
+        };
+
+        contenedor.Controls.Add(encabezado, 0, 0);
+        contenedor.Controls.Add(vista, 0, 1);
+
+        return contenedor;
     }
 
     // Navegación visual del commit 1.2
