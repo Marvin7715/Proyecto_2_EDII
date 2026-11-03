@@ -421,6 +421,124 @@ namespace TransRed.Core.Estructuras
             return ruta;
         }
 
+        public ResultadoRuta? ObtenerResultadoRuta(
+            string codigoOrigen,
+            string codigoDestino,
+            bool usarCosto)
+        {
+            int origen = BuscarIndice(codigoOrigen);
+            int destino = BuscarIndice(codigoDestino);
+
+            if (origen == -1 || destino == -1)
+                return null;
+
+            double[] distancias = new double[cantidad];
+            int[] anteriores = new int[cantidad];
+            bool[] visitados = new bool[cantidad];
+
+            for (int i = 0; i < cantidad; i++)
+            {
+                distancias[i] = double.PositiveInfinity;
+                anteriores[i] = -1;
+            }
+
+            distancias[origen] = 0;
+
+            for (int paso = 0; paso < cantidad; paso++)
+            {
+                int actual = -1;
+                double menor = double.PositiveInfinity;
+
+                for (int i = 0; i < cantidad; i++)
+                {
+                    if (!visitados[i] && distancias[i] < menor)
+                    {
+                        menor = distancias[i];
+                        actual = i;
+                    }
+                }
+
+                if (actual == -1)
+                    break;
+
+                if (actual == destino)
+                    break;
+
+                visitados[actual] = true;
+
+                Arista? arista = vertices[actual]!.PrimeraArista;
+
+                while (arista != null)
+                {
+                    int vecino = arista.Destino;
+
+                    double peso = usarCosto
+                        ? arista.Costo
+                        : arista.Minutos;
+
+                    double nuevaDistancia = distancias[actual] + peso;
+
+                    if (nuevaDistancia < distancias[vecino])
+                    {
+                        distancias[vecino] = nuevaDistancia;
+                        anteriores[vecino] = actual;
+                    }
+
+                    arista = arista.Siguiente;
+                }
+            }
+
+            if (double.IsPositiveInfinity(distancias[destino]))
+                return null;
+
+            int total = 0;
+
+            for (int actual = destino;
+                 actual != -1;
+                 actual = anteriores[actual])
+            {
+                total++;
+            }
+
+            Parada[] ruta = new Parada[total];
+            int posicion = total - 1;
+
+            for (int actual = destino;
+                 actual != -1;
+                 actual = anteriores[actual])
+            {
+                ruta[posicion--] = vertices[actual]!.Parada;
+            }
+
+            double tiempoTotal = 0;
+            double costoTotal = 0;
+
+            for (int i = 0; i < ruta.Length - 1; i++)
+            {
+                int indice = BuscarIndice(ruta[i].Codigo);
+                int siguiente = BuscarIndice(ruta[i + 1].Codigo);
+
+                Arista? arista = vertices[indice]!.PrimeraArista;
+
+                while (arista != null)
+                {
+                    if (arista.Destino == siguiente)
+                    {
+                        tiempoTotal += arista.Minutos;
+                        costoTotal += arista.Costo;
+                        break;
+                    }
+
+                    arista = arista.Siguiente;
+                }
+            }
+
+            return new ResultadoRuta(
+                ruta,
+                tiempoTotal,
+                costoTotal);
+        }
+
         public bool EstanConectadas(
             string codigoOrigen,
             string codigoDestino)

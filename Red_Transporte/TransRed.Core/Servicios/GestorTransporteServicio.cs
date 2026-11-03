@@ -126,5 +126,16 @@ namespace TransRed.Core.Servicios
                 codigoOrigen,
                 codigoDestino);
         }
+
+        public ResultadoRuta? ObtenerResultadoRuta(
+            string codigoOrigen,
+            string codigoDestino,
+            bool usarCosto)
+        {
+            return grafo.ObtenerResultadoRuta(
+                codigoOrigen,
+                codigoDestino,
+                usarCosto);
+        }
     }
 }

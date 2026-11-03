@@ -34,5 +34,10 @@ namespace TransRed.Core.Servicios
         bool EstanConectadas(
             string codigoOrigen,
             string codigoDestino);
+
+        ResultadoRuta? ObtenerResultadoRuta(
+            string codigoOrigen,
+            string codigoDestino,
+            bool usarCosto);
     }
 }
