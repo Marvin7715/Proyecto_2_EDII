@@ -39,5 +39,7 @@ namespace TransRed.Core.Servicios
             string codigoOrigen,
             string codigoDestino,
             bool usarCosto);
+
+        Parada[] ObtenerTodasParadas();
     }
 }

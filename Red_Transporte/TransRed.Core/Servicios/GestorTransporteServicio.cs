@@ -137,5 +137,10 @@ namespace TransRed.Core.Servicios
                 codigoDestino,
                 usarCosto);
         }
+
+        public Parada[] ObtenerTodasParadas()
+        {
+            return tablaParadas.ObtenerTodas();
+        }
     }
 }
