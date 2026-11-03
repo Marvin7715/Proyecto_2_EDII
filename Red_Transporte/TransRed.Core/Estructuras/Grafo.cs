@@ -336,6 +336,91 @@ namespace TransRed.Core.Estructuras
             return ruta;
         }
 
+        public Parada[] BuscarRutaMasEconomica(
+            string codigoOrigen,
+            string codigoDestino)
+        {
+            int origen = BuscarIndice(codigoOrigen);
+            int destino = BuscarIndice(codigoDestino);
+
+            if (origen == -1 || destino == -1)
+                return Array.Empty<Parada>();
+
+            double[] costos = new double[cantidad];
+            int[] anteriores = new int[cantidad];
+            bool[] visitados = new bool[cantidad];
+
+            for (int i = 0; i < cantidad; i++)
+            {
+                costos[i] = double.PositiveInfinity;
+                anteriores[i] = -1;
+            }
+
+            costos[origen] = 0;
+
+            for (int paso = 0; paso < cantidad; paso++)
+            {
+                int actual = -1;
+                double menorCosto = double.PositiveInfinity;
+
+                for (int i = 0; i < cantidad; i++)
+                {
+                    if (!visitados[i] && costos[i] < menorCosto)
+                    {
+                        menorCosto = costos[i];
+                        actual = i;
+                    }
+                }
+
+                if (actual == -1)
+                    break;
+
+                if (actual == destino)
+                    break;
+
+                visitados[actual] = true;
+                Arista? arista = vertices[actual]!.PrimeraArista;
+
+                while (arista != null)
+                {
+                    int vecino = arista.Destino;
+                    double nuevoCosto = costos[actual] + arista.Costo;
+
+                    if (nuevoCosto < costos[vecino])
+                    {
+                        costos[vecino] = nuevoCosto;
+                        anteriores[vecino] = actual;
+                    }
+
+                    arista = arista.Siguiente;
+                }
+            }
+
+            if (double.IsPositiveInfinity(costos[destino]))
+                return Array.Empty<Parada>();
+
+            int total = 0;
+
+            for (int actual = destino;
+                 actual != -1;
+                 actual = anteriores[actual])
+            {
+                total++;
+            }
+
+            Parada[] ruta = new Parada[total];
+            int posicion = total - 1;
+
+            for (int actual = destino;
+                 actual != -1;
+                 actual = anteriores[actual])
+            {
+                ruta[posicion--] = vertices[actual]!.Parada;
+            }
+
+            return ruta;
+        }
+
         public bool EstanConectadas(
             string codigoOrigen,
             string codigoDestino)

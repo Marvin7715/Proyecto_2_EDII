@@ -23,6 +23,10 @@ namespace TransRed.Core.Servicios
             string codigoOrigen,
             string codigoDestino);
 
+        Parada[] BuscarRutaMasEconomica(
+            string codigoOrigen,
+            string codigoDestino);
+
         Parada[] RecorrerBFS(string codigoInicio);
 
         Parada[] RecorrerDFS(string codigoInicio);

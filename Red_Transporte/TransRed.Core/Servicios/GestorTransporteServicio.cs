@@ -99,6 +99,15 @@ namespace TransRed.Core.Servicios
                 codigoDestino);
         }
 
+        public Parada[] BuscarRutaMasEconomica(
+            string codigoOrigen,
+            string codigoDestino)
+        {
+            return grafo.BuscarRutaMasEconomica(
+                codigoOrigen,
+                codigoDestino);
+        }
+
         public Parada[] RecorrerBFS(string codigoInicio)
         {
             return grafo.RecorrerBFS(codigoInicio);
