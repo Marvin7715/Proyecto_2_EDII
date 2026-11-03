@@ -7,12 +7,21 @@ namespace TransRed.Core.Estructuras
     {
         private class Nodo
         {
-            public Nodo?[] Hijos { get; } = new Nodo?[char.MaxValue + 1];
-
+            public char Caracter { get; }
+            public Nodo? PrimerHijo { get; set; }
+            public Nodo? SiguienteHermano { get; set; }
             public Parada? Parada { get; set; }
+
+            public Nodo(char caracter)
+            {
+                Caracter = caracter;
+                PrimerHijo = null;
+                SiguienteHermano = null;
+                Parada = null;
+            }
         }
 
-        private readonly Nodo raiz = new Nodo();
+        private readonly Nodo raiz = new Nodo('\0');
 
         public bool Insertar(Parada parada)
         {
@@ -23,12 +32,16 @@ namespace TransRed.Core.Estructuras
 
             foreach (char caracter in nombre)
             {
-                int indice = caracter;
+                Nodo? hijo = BuscarHijo(actual, caracter);
 
-                if (actual.Hijos[indice] == null)
-                    actual.Hijos[indice] = new Nodo();
+                if (hijo == null)
+                {
+                    hijo = new Nodo(caracter);
+                    hijo.SiguienteHermano = actual.PrimerHijo;
+                    actual.PrimerHijo = hijo;
+                }
 
-                actual = actual.Hijos[indice]!;
+                actual = hijo;
             }
 
             if (actual.Parada != null)
@@ -48,13 +61,15 @@ namespace TransRed.Core.Estructuras
 
             foreach (char caracter in texto)
             {
-                actual = actual.Hijos[caracter]!;
+                Nodo? hijo = BuscarHijo(actual, caracter);
 
-                if (actual == null)
+                if (hijo == null)
                     return Array.Empty<Parada>();
+
+                actual = hijo;
             }
 
-            Parada[] resultados = new Parada[0];
+            Parada[] resultados = Array.Empty<Parada>();
             Recopilar(actual, ref resultados);
 
             return resultados;
@@ -67,11 +82,26 @@ namespace TransRed.Core.Estructuras
 
             Nodo? terminal = BuscarNodo(Normalizar(nombre));
 
-            if (terminal?.Parada == null)
+            if (terminal == null || terminal.Parada == null)
                 return false;
 
             terminal.Parada = null;
             return true;
+        }
+
+        private Nodo? BuscarHijo(Nodo padre, char caracter)
+        {
+            Nodo? actual = padre.PrimerHijo;
+
+            while (actual != null)
+            {
+                if (actual.Caracter == caracter)
+                    return actual;
+
+                actual = actual.SiguienteHermano;
+            }
+
+            return null;
         }
 
         private Nodo? BuscarNodo(string texto)
@@ -80,18 +110,20 @@ namespace TransRed.Core.Estructuras
 
             foreach (char caracter in texto)
             {
-                Nodo? siguiente = actual.Hijos[caracter];
+                Nodo? hijo = BuscarHijo(actual, caracter);
 
-                if (siguiente == null)
+                if (hijo == null)
                     return null;
 
-                actual = siguiente;
+                actual = hijo;
             }
 
             return actual;
         }
 
-        private void Recopilar(Nodo nodo, ref Parada[] resultados)
+        private void Recopilar(
+            Nodo nodo,
+            ref Parada[] resultados)
         {
             if (nodo.Parada != null)
             {
@@ -100,10 +132,12 @@ namespace TransRed.Core.Estructuras
                 resultados[longitud] = nodo.Parada;
             }
 
-            foreach (Nodo? hijo in nodo.Hijos)
+            Nodo? hijo = nodo.PrimerHijo;
+
+            while (hijo != null)
             {
-                if (hijo != null)
-                    Recopilar(hijo, ref resultados);
+                Recopilar(hijo, ref resultados);
+                hijo = hijo.SiguienteHermano;
             }
         }
 
