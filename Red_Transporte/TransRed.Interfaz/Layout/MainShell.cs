@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using TransRed.Interfaz.Design;
 using TransRed.Interfaz.Components;
 using TransRed.Core.Servicios;
+using TransRed.Interfaz.Views;
 namespace TransRed.Interfaz.Layout;
 
 public static class MainShell
@@ -57,9 +58,12 @@ public static class MainShell
         // Cambia la vista sin abrir otra ventana
         void MostrarSeccion(string seccion)
         {
-            Control nuevaVista = seccion == "Explorar red"
-                ? CrearContenido(gestor)
-                : CrearVistaSeccion(seccion);
+            Control nuevaVista = seccion switch
+            {
+                "Explorar red" => CrearContenido(gestor),
+                "Paradas" => new VistaParadas(gestor),
+                _ => CrearVistaSeccion(seccion)
+            };
 
             Control? anterior = areaContenido.Controls.Count > 0
                 ? areaContenido.Controls[0]
