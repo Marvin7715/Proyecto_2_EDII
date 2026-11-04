@@ -90,6 +90,23 @@ namespace TransRed.Core.Servicios
                 bidireccional);
         }
 
+        public bool EliminarRuta(
+            string codigoOrigen,
+            string codigoDestino,
+            bool bidireccional)
+        {
+            if (tablaParadas.Buscar(codigoOrigen) == null)
+                return false;
+
+            if (tablaParadas.Buscar(codigoDestino) == null)
+                return false;
+
+            return grafo.EliminarRuta(
+                codigoOrigen,
+                codigoDestino,
+                bidireccional);
+        }
+
         public Parada[] BuscarRutaMasRapida(
             string codigoOrigen,
             string codigoDestino)

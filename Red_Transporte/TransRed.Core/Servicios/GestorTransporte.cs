@@ -19,6 +19,11 @@ namespace TransRed.Core.Servicios
             double costo,
             bool bidireccional);
 
+        bool EliminarRuta(
+            string codigoOrigen,
+            string codigoDestino,
+            bool bidireccional);
+
         Parada[] BuscarRutaMasRapida(
             string codigoOrigen,
             string codigoDestino);
