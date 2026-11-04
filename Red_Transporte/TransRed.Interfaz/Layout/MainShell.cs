@@ -4,6 +4,7 @@ using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using TransRed.Interfaz.Design;
 using TransRed.Interfaz.Components;
+using TransRed.Core.Servicios;
 namespace TransRed.Interfaz.Layout;
 
 public static class MainShell
@@ -18,7 +19,7 @@ public static class MainShell
         Color.FromArgb(124, 143, 135);
 
     
-    public static void Construir(Form ventana)
+    public static void Construir(Form ventana, IGestorTransporte gestor)
     {
         ventana.SuspendLayout();
         ventana.Controls.Clear();
@@ -57,7 +58,7 @@ public static class MainShell
         void MostrarSeccion(string seccion)
         {
             Control nuevaVista = seccion == "Explorar red"
-                ? CrearContenido()
+                ? CrearContenido(gestor)
                 : CrearVistaSeccion(seccion);
 
             Control? anterior = areaContenido.Controls.Count > 0
@@ -158,7 +159,7 @@ public static class MainShell
     }
 
     // Distribución de panel izquierdo y lienzo central
-    private static Control CrearContenido()
+    private static Control CrearContenido(IGestorTransporte gestor)
     {
         var contenido = new TableLayoutPanel
         {
@@ -180,7 +181,7 @@ public static class MainShell
             new RowStyle(SizeType.Percent, 100));
 
         contenido.Controls.Add(CrearPlanificador(), 0, 0);
-        contenido.Controls.Add(CrearLienzo(), 1, 0);
+        contenido.Controls.Add(CrearLienzo(gestor), 1, 0);
 
         return contenido;
     }
@@ -374,7 +375,7 @@ public static class MainShell
     }
 
     // Lienzo adaptable a cualquier tamaño de ventana
-    private static Control CrearLienzo()
+    private static Control CrearLienzo(IGestorTransporte gestor)
     {
         var lienzo = new TableLayoutPanel
         {
@@ -407,7 +408,7 @@ public static class MainShell
             0, 0);
 
         // Todo el mensaje se dibuja en un solo control
-        var estadoVacio = new LienzoRed
+        var estadoVacio = new LienzoRed(gestor)
         {
             Dock = DockStyle.Fill,
             Margin = Padding.Empty

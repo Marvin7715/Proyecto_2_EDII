@@ -142,5 +142,10 @@ namespace TransRed.Core.Servicios
         {
             return tablaParadas.ObtenerTodas();
         }
+
+        public Conexion[] ObtenerTodasConexiones()
+        {
+            return grafo.ObtenerConexiones();
+        }
     }
 }

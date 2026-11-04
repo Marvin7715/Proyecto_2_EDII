@@ -41,5 +41,7 @@ namespace TransRed.Core.Servicios
             bool usarCosto);
 
         Parada[] ObtenerTodasParadas();
+
+        Conexion[] ObtenerTodasConexiones();
     }
 }

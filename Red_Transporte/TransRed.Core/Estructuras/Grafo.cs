@@ -575,6 +575,44 @@ namespace TransRed.Core.Estructuras
             return resultado;
         }
 
+        public Conexion[] ObtenerConexiones()
+        {
+            int total = 0;
+
+            for (int i = 0; i < cantidad; i++)
+            {
+                Arista? arista = vertices[i]!.PrimeraArista;
+
+                while (arista != null)
+                {
+                    total++;
+                    arista = arista.Siguiente;
+                }
+            }
+
+            Conexion[] resultado = new Conexion[total];
+            int posicion = 0;
+
+            for (int i = 0; i < cantidad; i++)
+            {
+                Arista? arista = vertices[i]!.PrimeraArista;
+
+                while (arista != null)
+                {
+                    resultado[posicion++] = new Conexion(
+                        vertices[i]!.Parada.Codigo,
+                        vertices[arista.Destino]!.Parada.Codigo,
+                        arista.Minutos,
+                        arista.Costo
+                    );
+
+                    arista = arista.Siguiente;
+                }
+            }
+
+            return resultado;
+        }
+
         private int BuscarIndice(string codigo)
         {
             if (string.IsNullOrWhiteSpace(codigo))
