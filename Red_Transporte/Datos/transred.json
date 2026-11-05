@@ -3,11 +3,756 @@
   "Version": 1,
   "Paradas": [
     {
-      "Codigo": "TEST-01",
-      "Nombre": "Parada de prueba",
+      "Codigo": "CC",
+      "Nombre": "Cuatro Caminos - San Cristobal Totonicapan",
+      "Latitud": 14.9167,
+      "Longitud": -91.4433
+    },
+    {
+      "Codigo": "XELA",
+      "Nombre": "Parque Central - Quetzaltenango",
       "Latitud": 14.8347,
       "Longitud": -91.518
+    },
+    {
+      "Codigo": "SAL",
+      "Nombre": "Parque Central - Salcaja",
+      "Latitud": 14.8794,
+      "Longitud": -91.456
+    },
+    {
+      "Codigo": "OLI",
+      "Nombre": "Centro de Olintepeque",
+      "Latitud": 14.8867,
+      "Longitud": -91.5147
+    },
+    {
+      "Codigo": "TOT",
+      "Nombre": "Parque Central - Totonicapan",
+      "Latitud": 14.9117,
+      "Longitud": -91.3614
+    },
+    {
+      "Codigo": "SFA",
+      "Nombre": "Centro de San Francisco el Alto",
+      "Latitud": 14.9442,
+      "Longitud": -91.4436
+    },
+    {
+      "Codigo": "ZUN",
+      "Nombre": "Centro de Zunil",
+      "Latitud": 14.7847,
+      "Longitud": -91.4831
+    },
+    {
+      "Codigo": "FGE",
+      "Nombre": "Fuentes Georginas - Zunil",
+      "Latitud": 14.7625,
+      "Longitud": -91.475
+    },
+    {
+      "Codigo": "SANTA",
+      "Nombre": "Acceso al Volcan Santa Maria",
+      "Latitud": 14.756,
+      "Longitud": -91.552
+    },
+    {
+      "Codigo": "CHIC",
+      "Nombre": "Acceso a Laguna Chicabal - San Martin Sacatepequez",
+      "Latitud": 14.797,
+      "Longitud": -91.684
+    },
+    {
+      "Codigo": "ENCU",
+      "Nombre": "Los Encuentros - Solola",
+      "Latitud": 14.854,
+      "Longitud": -91.148
+    },
+    {
+      "Codigo": "PANA",
+      "Nombre": "Panajachel - Lago de Atitlan",
+      "Latitud": 14.7419,
+      "Longitud": -91.1564
+    },
+    {
+      "Codigo": "HUE",
+      "Nombre": "Parque Central - Huehuetenango",
+      "Latitud": 15.3197,
+      "Longitud": -91.4708
+    },
+    {
+      "Codigo": "SM",
+      "Nombre": "Parque Central - San Marcos",
+      "Latitud": 14.9639,
+      "Longitud": -91.7944
+    },
+    {
+      "Codigo": "OST",
+      "Nombre": "Parque Central - San Juan Ostuncalco",
+      "Latitud": 14.876,
+      "Longitud": -91.621
+    },
+    {
+      "Codigo": "COL",
+      "Nombre": "Centro de Colomba Costa Cuca",
+      "Latitud": 14.707,
+      "Longitud": -91.731
+    },
+    {
+      "Codigo": "COAT",
+      "Nombre": "Parque Central - Coatepeque",
+      "Latitud": 14.704,
+      "Longitud": -91.864
+    },
+    {
+      "Codigo": "RET",
+      "Nombre": "Parque Central - Retalhuleu",
+      "Latitud": 14.536,
+      "Longitud": -91.677
+    },
+    {
+      "Codigo": "MAZ",
+      "Nombre": "Parque Central - Mazatenango",
+      "Latitud": 14.534,
+      "Longitud": -91.504
+    },
+    {
+      "Codigo": "ZAP",
+      "Nombre": "Parque Central - San Francisco Zapotitlan",
+      "Latitud": 14.588,
+      "Longitud": -91.521
+    },
+    {
+      "Codigo": "SAM",
+      "Nombre": "Parque Central - Samayac",
+      "Latitud": 14.581,
+      "Longitud": -91.462
+    },
+    {
+      "Codigo": "SMC",
+      "Nombre": "Parque Central - San Pedro Sacatepequez, San Marcos",
+      "Latitud": 14.968,
+      "Longitud": -91.781
+    },
+    {
+      "Codigo": "MAL",
+      "Nombre": "Parque Central - Malacatan",
+      "Latitud": 14.894,
+      "Longitud": -92.057
+    },
+    {
+      "Codigo": "TAC",
+      "Nombre": "Parque Central - Tacana",
+      "Latitud": 15.241,
+      "Longitud": -92.067
+    },
+    {
+      "Codigo": "CHI",
+      "Nombre": "Parque Central - Chiantla",
+      "Latitud": 15.354,
+      "Longitud": -91.458
+    },
+    {
+      "Codigo": "JAC",
+      "Nombre": "Parque Central - Jacaltenango",
+      "Latitud": 15.667,
+      "Longitud": -91.712
+    },
+    {
+      "Codigo": "MOM",
+      "Nombre": "Parque Central - Momostenango",
+      "Latitud": 15.044,
+      "Longitud": -91.408
+    },
+    {
+      "Codigo": "NAH",
+      "Nombre": "Parque Central - Nahuala",
+      "Latitud": 14.842,
+      "Longitud": -91.317
+    },
+    {
+      "Codigo": "SOLO",
+      "Nombre": "Parque Central - Solola",
+      "Latitud": 14.773,
+      "Longitud": -91.183
+    },
+    {
+      "Codigo": "SJP",
+      "Nombre": "Embarcadero - San Juan La Laguna",
+      "Latitud": 14.694,
+      "Longitud": -91.286
+    },
+    {
+      "Codigo": "SMA",
+      "Nombre": "Parque Central - San Andres Semetabaj",
+      "Latitud": 14.745,
+      "Longitud": -91.137
+    },
+    {
+      "Codigo": "SAC",
+      "Nombre": "Parque Central - Sacapulas",
+      "Latitud": 15.289,
+      "Longitud": -91.089
+    },
+    {
+      "Codigo": "CUN",
+      "Nombre": "Parque Central - Cunen",
+      "Latitud": 15.337,
+      "Longitud": -91.027
+    },
+    {
+      "Codigo": "SAN",
+      "Nombre": "Parque Central - San Antonio Suchitepequez",
+      "Latitud": 14.539,
+      "Longitud": -91.414
+    },
+    {
+      "Codigo": "TEC",
+      "Nombre": "Parque Central - Tecun Uman",
+      "Latitud": 14.677,
+      "Longitud": -92.14
     }
   ],
-  "Conexiones": []
+  "Conexiones": [
+    {
+      "Origen": "XELA",
+      "Destino": "CC",
+      "Minutos": 25,
+      "Costo": 12
+    },
+    {
+      "Origen": "CC",
+      "Destino": "XELA",
+      "Minutos": 25,
+      "Costo": 12
+    },
+    {
+      "Origen": "CC",
+      "Destino": "SAL",
+      "Minutos": 18,
+      "Costo": 9
+    },
+    {
+      "Origen": "SAL",
+      "Destino": "CC",
+      "Minutos": 18,
+      "Costo": 9
+    },
+    {
+      "Origen": "CC",
+      "Destino": "TOT",
+      "Minutos": 30,
+      "Costo": 15
+    },
+    {
+      "Origen": "TOT",
+      "Destino": "CC",
+      "Minutos": 30,
+      "Costo": 15
+    },
+    {
+      "Origen": "CC",
+      "Destino": "SFA",
+      "Minutos": 22,
+      "Costo": 10
+    },
+    {
+      "Origen": "SFA",
+      "Destino": "CC",
+      "Minutos": 22,
+      "Costo": 10
+    },
+    {
+      "Origen": "XELA",
+      "Destino": "SAL",
+      "Minutos": 15,
+      "Costo": 8
+    },
+    {
+      "Origen": "SAL",
+      "Destino": "XELA",
+      "Minutos": 15,
+      "Costo": 8
+    },
+    {
+      "Origen": "XELA",
+      "Destino": "OLI",
+      "Minutos": 15,
+      "Costo": 8
+    },
+    {
+      "Origen": "OLI",
+      "Destino": "XELA",
+      "Minutos": 15,
+      "Costo": 8
+    },
+    {
+      "Origen": "XELA",
+      "Destino": "ZUN",
+      "Minutos": 35,
+      "Costo": 18
+    },
+    {
+      "Origen": "ZUN",
+      "Destino": "XELA",
+      "Minutos": 35,
+      "Costo": 18
+    },
+    {
+      "Origen": "ZUN",
+      "Destino": "FGE",
+      "Minutos": 25,
+      "Costo": 15
+    },
+    {
+      "Origen": "FGE",
+      "Destino": "ZUN",
+      "Minutos": 25,
+      "Costo": 15
+    },
+    {
+      "Origen": "XELA",
+      "Destino": "SANTA",
+      "Minutos": 45,
+      "Costo": 22
+    },
+    {
+      "Origen": "SANTA",
+      "Destino": "XELA",
+      "Minutos": 45,
+      "Costo": 22
+    },
+    {
+      "Origen": "XELA",
+      "Destino": "CHIC",
+      "Minutos": 55,
+      "Costo": 25
+    },
+    {
+      "Origen": "CHIC",
+      "Destino": "XELA",
+      "Minutos": 55,
+      "Costo": 25
+    },
+    {
+      "Origen": "CC",
+      "Destino": "ENCU",
+      "Minutos": 55,
+      "Costo": 28
+    },
+    {
+      "Origen": "ENCU",
+      "Destino": "CC",
+      "Minutos": 55,
+      "Costo": 28
+    },
+    {
+      "Origen": "ENCU",
+      "Destino": "PANA",
+      "Minutos": 40,
+      "Costo": 20
+    },
+    {
+      "Origen": "PANA",
+      "Destino": "ENCU",
+      "Minutos": 40,
+      "Costo": 20
+    },
+    {
+      "Origen": "XELA",
+      "Destino": "OST",
+      "Minutos": 28,
+      "Costo": 14
+    },
+    {
+      "Origen": "OST",
+      "Destino": "XELA",
+      "Minutos": 28,
+      "Costo": 14
+    },
+    {
+      "Origen": "OST",
+      "Destino": "HUE",
+      "Minutos": 85,
+      "Costo": 42
+    },
+    {
+      "Origen": "HUE",
+      "Destino": "OST",
+      "Minutos": 85,
+      "Costo": 42
+    },
+    {
+      "Origen": "HUE",
+      "Destino": "CHI",
+      "Minutos": 18,
+      "Costo": 8
+    },
+    {
+      "Origen": "CHI",
+      "Destino": "HUE",
+      "Minutos": 18,
+      "Costo": 8
+    },
+    {
+      "Origen": "CHI",
+      "Destino": "JAC",
+      "Minutos": 95,
+      "Costo": 48
+    },
+    {
+      "Origen": "JAC",
+      "Destino": "CHI",
+      "Minutos": 95,
+      "Costo": 48
+    },
+    {
+      "Origen": "HUE",
+      "Destino": "SAC",
+      "Minutos": 100,
+      "Costo": 50
+    },
+    {
+      "Origen": "SAC",
+      "Destino": "HUE",
+      "Minutos": 100,
+      "Costo": 50
+    },
+    {
+      "Origen": "SAC",
+      "Destino": "CUN",
+      "Minutos": 35,
+      "Costo": 18
+    },
+    {
+      "Origen": "CUN",
+      "Destino": "SAC",
+      "Minutos": 35,
+      "Costo": 18
+    },
+    {
+      "Origen": "SFA",
+      "Destino": "MOM",
+      "Minutos": 25,
+      "Costo": 12
+    },
+    {
+      "Origen": "MOM",
+      "Destino": "SFA",
+      "Minutos": 25,
+      "Costo": 12
+    },
+    {
+      "Origen": "TOT",
+      "Destino": "MOM",
+      "Minutos": 32,
+      "Costo": 16
+    },
+    {
+      "Origen": "MOM",
+      "Destino": "TOT",
+      "Minutos": 32,
+      "Costo": 16
+    },
+    {
+      "Origen": "TOT",
+      "Destino": "NAH",
+      "Minutos": 45,
+      "Costo": 22
+    },
+    {
+      "Origen": "NAH",
+      "Destino": "TOT",
+      "Minutos": 45,
+      "Costo": 22
+    },
+    {
+      "Origen": "NAH",
+      "Destino": "SOLO",
+      "Minutos": 25,
+      "Costo": 12
+    },
+    {
+      "Origen": "SOLO",
+      "Destino": "NAH",
+      "Minutos": 25,
+      "Costo": 12
+    },
+    {
+      "Origen": "SOLO",
+      "Destino": "ENCU",
+      "Minutos": 18,
+      "Costo": 8
+    },
+    {
+      "Origen": "ENCU",
+      "Destino": "SOLO",
+      "Minutos": 18,
+      "Costo": 8
+    },
+    {
+      "Origen": "SOLO",
+      "Destino": "PANA",
+      "Minutos": 25,
+      "Costo": 12
+    },
+    {
+      "Origen": "PANA",
+      "Destino": "SOLO",
+      "Minutos": 25,
+      "Costo": 12
+    },
+    {
+      "Origen": "PANA",
+      "Destino": "SJP",
+      "Minutos": 25,
+      "Costo": 12
+    },
+    {
+      "Origen": "SJP",
+      "Destino": "PANA",
+      "Minutos": 25,
+      "Costo": 12
+    },
+    {
+      "Origen": "SOLO",
+      "Destino": "SMA",
+      "Minutos": 28,
+      "Costo": 13
+    },
+    {
+      "Origen": "SMA",
+      "Destino": "SOLO",
+      "Minutos": 28,
+      "Costo": 13
+    },
+    {
+      "Origen": "XELA",
+      "Destino": "SM",
+      "Minutos": 55,
+      "Costo": 28
+    },
+    {
+      "Origen": "SM",
+      "Destino": "XELA",
+      "Minutos": 55,
+      "Costo": 28
+    },
+    {
+      "Origen": "SM",
+      "Destino": "SMC",
+      "Minutos": 12,
+      "Costo": 6
+    },
+    {
+      "Origen": "SMC",
+      "Destino": "SM",
+      "Minutos": 12,
+      "Costo": 6
+    },
+    {
+      "Origen": "SM",
+      "Destino": "MAL",
+      "Minutos": 75,
+      "Costo": 38
+    },
+    {
+      "Origen": "MAL",
+      "Destino": "SM",
+      "Minutos": 75,
+      "Costo": 38
+    },
+    {
+      "Origen": "MAL",
+      "Destino": "TAC",
+      "Minutos": 65,
+      "Costo": 32
+    },
+    {
+      "Origen": "TAC",
+      "Destino": "MAL",
+      "Minutos": 65,
+      "Costo": 32
+    },
+    {
+      "Origen": "SM",
+      "Destino": "COAT",
+      "Minutos": 90,
+      "Costo": 45
+    },
+    {
+      "Origen": "COAT",
+      "Destino": "SM",
+      "Minutos": 90,
+      "Costo": 45
+    },
+    {
+      "Origen": "XELA",
+      "Destino": "COL",
+      "Minutos": 65,
+      "Costo": 30
+    },
+    {
+      "Origen": "COL",
+      "Destino": "XELA",
+      "Minutos": 65,
+      "Costo": 30
+    },
+    {
+      "Origen": "COL",
+      "Destino": "COAT",
+      "Minutos": 35,
+      "Costo": 18
+    },
+    {
+      "Origen": "COAT",
+      "Destino": "COL",
+      "Minutos": 35,
+      "Costo": 18
+    },
+    {
+      "Origen": "COAT",
+      "Destino": "RET",
+      "Minutos": 55,
+      "Costo": 28
+    },
+    {
+      "Origen": "RET",
+      "Destino": "COAT",
+      "Minutos": 55,
+      "Costo": 28
+    },
+    {
+      "Origen": "RET",
+      "Destino": "MAZ",
+      "Minutos": 45,
+      "Costo": 22
+    },
+    {
+      "Origen": "MAZ",
+      "Destino": "RET",
+      "Minutos": 45,
+      "Costo": 22
+    },
+    {
+      "Origen": "MAZ",
+      "Destino": "ZAP",
+      "Minutos": 18,
+      "Costo": 8
+    },
+    {
+      "Origen": "ZAP",
+      "Destino": "MAZ",
+      "Minutos": 18,
+      "Costo": 8
+    },
+    {
+      "Origen": "MAZ",
+      "Destino": "SAM",
+      "Minutos": 20,
+      "Costo": 9
+    },
+    {
+      "Origen": "SAM",
+      "Destino": "MAZ",
+      "Minutos": 20,
+      "Costo": 9
+    },
+    {
+      "Origen": "MAZ",
+      "Destino": "SAN",
+      "Minutos": 25,
+      "Costo": 12
+    },
+    {
+      "Origen": "SAN",
+      "Destino": "MAZ",
+      "Minutos": 25,
+      "Costo": 12
+    },
+    {
+      "Origen": "RET",
+      "Destino": "TEC",
+      "Minutos": 90,
+      "Costo": 45
+    },
+    {
+      "Origen": "TEC",
+      "Destino": "RET",
+      "Minutos": 90,
+      "Costo": 45
+    },
+    {
+      "Origen": "COAT",
+      "Destino": "TEC",
+      "Minutos": 70,
+      "Costo": 35
+    },
+    {
+      "Origen": "TEC",
+      "Destino": "COAT",
+      "Minutos": 70,
+      "Costo": 35
+    },
+    {
+      "Origen": "XELA",
+      "Destino": "RET",
+      "Minutos": 105,
+      "Costo": 52
+    },
+    {
+      "Origen": "RET",
+      "Destino": "XELA",
+      "Minutos": 105,
+      "Costo": 52
+    },
+    {
+      "Origen": "RET",
+      "Destino": "SAN",
+      "Minutos": 35,
+      "Costo": 16
+    },
+    {
+      "Origen": "SAN",
+      "Destino": "RET",
+      "Minutos": 35,
+      "Costo": 16
+    },
+    {
+      "Origen": "HUE",
+      "Destino": "JAC",
+      "Minutos": 120,
+      "Costo": 58
+    },
+    {
+      "Origen": "JAC",
+      "Destino": "HUE",
+      "Minutos": 120,
+      "Costo": 58
+    },
+    {
+      "Origen": "CC",
+      "Destino": "HUE",
+      "Minutos": 105,
+      "Costo": 55
+    },
+    {
+      "Origen": "HUE",
+      "Destino": "CC",
+      "Minutos": 105,
+      "Costo": 55
+    },
+    {
+      "Origen": "CC",
+      "Destino": "SM",
+      "Minutos": 95,
+      "Costo": 50
+    },
+    {
+      "Origen": "SM",
+      "Destino": "CC",
+      "Minutos": 95,
+      "Costo": 50
+    }
+  ]
 }
