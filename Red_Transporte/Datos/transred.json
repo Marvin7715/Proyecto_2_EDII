@@ -753,6 +753,78 @@
       "Destino": "CC",
       "Minutos": 95,
       "Costo": 50
+    },
+    {
+      "Origen": "SAL",
+      "Destino": "HUE",
+      "Minutos": 95,
+      "Costo": 80
+    },
+    {
+      "Origen": "HUE",
+      "Destino": "SAL",
+      "Minutos": 95,
+      "Costo": 80
+    },
+    {
+      "Origen": "XELA",
+      "Destino": "HUE",
+      "Minutos": 100,
+      "Costo": 82
+    },
+    {
+      "Origen": "HUE",
+      "Destino": "XELA",
+      "Minutos": 100,
+      "Costo": 82
+    },
+    {
+      "Origen": "XELA",
+      "Destino": "PANA",
+      "Minutos": 95,
+      "Costo": 78
+    },
+    {
+      "Origen": "PANA",
+      "Destino": "XELA",
+      "Minutos": 95,
+      "Costo": 78
+    },
+    {
+      "Origen": "MAZ",
+      "Destino": "TEC",
+      "Minutos": 105,
+      "Costo": 80
+    },
+    {
+      "Origen": "TEC",
+      "Destino": "MAZ",
+      "Minutos": 105,
+      "Costo": 80
+    },
+    {
+      "Origen": "COAT",
+      "Destino": "XELA",
+      "Minutos": 85,
+      "Costo": 64
+    },
+    {
+      "Origen": "XELA",
+      "Destino": "COAT",
+      "Minutos": 85,
+      "Costo": 64
+    },
+    {
+      "Origen": "XELA",
+      "Destino": "MAZ",
+      "Minutos": 120,
+      "Costo": 96
+    },
+    {
+      "Origen": "MAZ",
+      "Destino": "XELA",
+      "Minutos": 120,
+      "Costo": 96
     }
   ]
 }
