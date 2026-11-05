@@ -9,7 +9,7 @@ using TransRed.Interfaz.Design;
 
 namespace TransRed.Interfaz.Views;
 
-// Planificación y mapa en una misma pantalla
+// Explorador principal y planificador visual
 public class ExploradorPrincipal : UserControl
 {
     private readonly IGestorTransporte gestor;
@@ -22,7 +22,9 @@ public class ExploradorPrincipal : UserControl
     private readonly Button btnEconomica = new();
 
     private readonly Label lblEstado = new();
-    private readonly Label lblDetalle = new();
+    private readonly Label lblResumen = new();
+
+    private readonly FlowLayoutPanel listaPasos = new();
 
     private bool usarCosto;
 
@@ -39,7 +41,7 @@ public class ExploradorPrincipal : UserControl
             Margin = Padding.Empty
         };
 
-        var principal = new TableLayoutPanel
+        var estructura = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
@@ -49,41 +51,42 @@ public class ExploradorPrincipal : UserControl
             BackColor = TransRedTheme.Fondo
         };
 
-        principal.ColumnStyles.Add(
-            new ColumnStyle(SizeType.Absolute, 332));
+        estructura.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Absolute, 350));
 
-        principal.ColumnStyles.Add(
+        estructura.ColumnStyles.Add(
             new ColumnStyle(SizeType.Percent, 100));
 
-        principal.RowStyles.Add(
+        estructura.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
-        principal.Controls.Add(CrearPlanificador(), 0, 0);
-        principal.Controls.Add(CrearMapa(), 1, 0);
+        estructura.Controls.Add(CrearPlanificador(), 0, 0);
+        estructura.Controls.Add(CrearMapa(), 1, 0);
 
-        Controls.Add(principal);
+        Controls.Add(estructura);
 
         CargarParadas();
         SeleccionarModo(false);
+        MostrarEstadoInicial();
     }
 
     private Control CrearPlanificador()
     {
         var tarjeta = new GradientSurface(
             Color.White,
-            Color.FromArgb(250, 249, 244),
+            Color.FromArgb(251, 249, 244),
             20)
         {
             Dock = DockStyle.Fill,
             Margin = new Padding(0, 0, 14, 0),
-            Padding = new Padding(22, 22, 22, 18)
+            Padding = new Padding(20, 22, 20, 18)
         };
 
         var tabla = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 8,
+            RowCount = 9,
             Margin = Padding.Empty,
             BackColor = Color.Transparent
         };
@@ -91,61 +94,49 @@ public class ExploradorPrincipal : UserControl
         tabla.ColumnStyles.Add(
             new ColumnStyle(SizeType.Percent, 100));
 
-        tabla.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 28));
+        int[] alturas =
+        {
+            30, 49, 75, 75, 73, 60, 29, 95
+        };
 
-        tabla.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 58));
-
-        tabla.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 79));
-
-        tabla.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 79));
-
-        tabla.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 74));
-
-        tabla.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 59));
-
-        tabla.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 24));
+        foreach (int alto in alturas)
+        {
+            tabla.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, alto));
+        }
 
         tabla.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
         tabla.Controls.Add(
-            CrearEtiqueta(
-                "PLANIFICACIÓN DE VIAJE",
-                8,
-                true,
-                TransRedTheme.Cobre),
+            Etiqueta(
+                "PLANIFICA TU VIAJE",
+                8.5f,
+                TransRedTheme.Cobre,
+                true),
             0, 0);
 
         tabla.Controls.Add(
-            CrearEtiqueta(
-                "Explora la red",
-                17,
-                true,
-                TransRedTheme.Tinta),
+            Etiqueta(
+                "Tu próximo recorrido",
+                15.5f,
+                TransRedTheme.Tinta,
+                true),
             0, 1);
 
         tabla.Controls.Add(
-            CrearCampo("ORIGEN", cmbOrigen),
-            0, 2);
+            CrearCampo("ORIGEN", cmbOrigen), 0, 2);
 
         tabla.Controls.Add(
-            CrearCampo("DESTINO", cmbDestino),
-            0, 3);
+            CrearCampo("DESTINO", cmbDestino), 0, 3);
 
         tabla.Controls.Add(CrearModos(), 0, 4);
 
         var botonBuscar = new Button
         {
-            Text = "Buscar recorrido   →",
+            Text = "Explorar recorrido  →",
             Dock = DockStyle.Fill,
-            Margin = new Padding(0, 8, 0, 7)
+            Margin = new Padding(0, 7, 0, 9)
         };
 
         UiStyles.AplicarBotonPrincipal(botonBuscar);
@@ -154,59 +145,15 @@ public class ExploradorPrincipal : UserControl
         tabla.Controls.Add(botonBuscar, 0, 5);
 
         tabla.Controls.Add(
-            CrearEtiqueta(
-                "TU RECORRIDO",
+            Etiqueta(
+                "RESUMEN DEL VIAJE",
                 8,
-                true,
-                TransRedTheme.TextoTenue),
+                TransRedTheme.TextoTenue,
+                true),
             0, 6);
 
-        var resultado = new GradientSurface(
-            Color.FromArgb(235, 244, 232),
-            Color.FromArgb(248, 244, 234),
-            14)
-        {
-            Dock = DockStyle.Fill,
-            Margin = new Padding(0, 6, 0, 0),
-            Padding = new Padding(13, 12, 13, 12)
-        };
-
-        var informacion = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 2,
-            BackColor = Color.Transparent
-        };
-
-        informacion.ColumnStyles.Add(
-            new ColumnStyle(SizeType.Percent, 100));
-
-        informacion.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 48));
-
-        informacion.RowStyles.Add(
-            new ColumnStyle(SizeType.Percent, 100));
-
-        lblEstado.Text = "Sin recorrido seleccionado";
-        lblEstado.Dock = DockStyle.Fill;
-        lblEstado.ForeColor = TransRedTheme.Bosque;
-        lblEstado.Font = new Font(
-            "Segoe UI", 11, FontStyle.Bold);
-        lblEstado.TextAlign = ContentAlignment.MiddleLeft;
-
-        lblDetalle.Text = "Selecciona origen y destino";
-        lblDetalle.Dock = DockStyle.Fill;
-        lblDetalle.ForeColor =
-            TransRedTheme.TextoSecundario;
-        lblDetalle.Font = new Font("Segoe UI", 9);
-        lblDetalle.TextAlign = ContentAlignment.TopLeft;
-
-        informacion.Controls.Add(lblEstado, 0, 0);
-        informacion.Controls.Add(lblDetalle, 0, 1);
-
-        resultado.Controls.Add(informacion);
-        tabla.Controls.Add(resultado, 0, 7);
+        tabla.Controls.Add(CrearResumen(), 0, 7);
+        tabla.Controls.Add(CrearItinerario(), 0, 8);
 
         tarjeta.Controls.Add(tabla);
         return tarjeta;
@@ -215,42 +162,42 @@ public class ExploradorPrincipal : UserControl
     private Control CrearCampo(
         string titulo, ComboBox combo)
     {
-        var contenedor = new TableLayoutPanel
+        var panel = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 2,
+            BackColor = Color.Transparent,
             Margin = Padding.Empty,
-            Padding = new Padding(0, 5, 0, 10),
-            BackColor = Color.Transparent
+            Padding = new Padding(0, 5, 0, 9)
         };
 
-        contenedor.ColumnStyles.Add(
+        panel.ColumnStyles.Add(
             new ColumnStyle(SizeType.Percent, 100));
 
-        contenedor.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 26));
+        panel.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 25));
 
-        contenedor.RowStyles.Add(
+        panel.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
-        contenedor.Controls.Add(
-            CrearEtiqueta(
-                titulo, 8, true,
-                TransRedTheme.TextoSecundario),
+        panel.Controls.Add(
+            Etiqueta(
+                titulo, 8,
+                TransRedTheme.TextoSecundario,
+                true),
             0, 0);
 
         UiStyles.AplicarCombo(combo);
 
         combo.Dock = DockStyle.Fill;
         combo.Margin = Padding.Empty;
-        combo.DropDownWidth = 360;
+        combo.DropDownWidth = 420;
+        combo.DropDownHeight = 300;
         combo.IntegralHeight = false;
-        combo.DropDownHeight = 280;
 
-        contenedor.Controls.Add(combo, 0, 1);
-
-        return contenedor;
+        panel.Controls.Add(combo, 0, 1);
+        return panel;
     }
 
     private Control CrearModos()
@@ -261,7 +208,7 @@ public class ExploradorPrincipal : UserControl
             ColumnCount = 2,
             RowCount = 2,
             Margin = Padding.Empty,
-            Padding = new Padding(0, 4, 0, 6),
+            Padding = new Padding(0, 4, 0, 7),
             BackColor = Color.Transparent
         };
 
@@ -277,32 +224,21 @@ public class ExploradorPrincipal : UserControl
         panel.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
-        panel.Controls.Add(
-            CrearEtiqueta(
-                "TIPO DE RECORRIDO",
-                8, true,
-                TransRedTheme.TextoSecundario),
-            0, 0);
+        var etiqueta = Etiqueta(
+            "TIPO DE RECORRIDO",
+            8,
+            TransRedTheme.TextoSecundario,
+            true
+        );
 
-        panel.SetColumnSpan(panel.Controls[0], 2);
+        panel.Controls.Add(etiqueta, 0, 0);
+        panel.SetColumnSpan(etiqueta, 2);
 
-        btnRapida.Text = "Más rápida";
-        btnEconomica.Text = "Económica";
+        ConfigurarSelector(btnRapida, "Más rápida");
+        ConfigurarSelector(btnEconomica, "Económica");
 
-        foreach (Button boton in new[] {
-            btnRapida, btnEconomica
-        })
-        {
-            boton.Dock = DockStyle.Fill;
-            boton.Margin = new Padding(0, 2, 5, 0);
-            boton.FlatStyle = FlatStyle.Flat;
-            boton.FlatAppearance.BorderSize = 0;
-            boton.Cursor = Cursors.Hand;
-            boton.Font = new Font("Segoe UI", 9);
-            boton.UseVisualStyleBackColor = false;
-        }
-
-        btnEconomica.Margin = new Padding(5, 2, 0, 0);
+        btnRapida.Margin = new Padding(0, 2, 4, 0);
+        btnEconomica.Margin = new Padding(4, 2, 0, 0);
 
         btnRapida.Click += (_, _) => SeleccionarModo(false);
         btnEconomica.Click += (_, _) => SeleccionarModo(true);
@@ -313,16 +249,28 @@ public class ExploradorPrincipal : UserControl
         return panel;
     }
 
-    private Control CrearMapa()
+    private static void ConfigurarSelector(
+        Button boton, string texto)
     {
-        var superficie = new GradientSurface(
-            Color.FromArgb(237, 244, 235),
-            Color.FromArgb(229, 238, 228),
-            22)
+        boton.Text = texto;
+        boton.Dock = DockStyle.Fill;
+        boton.FlatStyle = FlatStyle.Flat;
+        boton.FlatAppearance.BorderSize = 0;
+        boton.Font = new Font("Segoe UI", 9.5f);
+        boton.Cursor = Cursors.Hand;
+        boton.UseVisualStyleBackColor = false;
+    }
+
+    private Control CrearResumen()
+    {
+        var tarjeta = new GradientSurface(
+            Color.FromArgb(232, 243, 232),
+            Color.FromArgb(247, 244, 232),
+            13)
         {
             Dock = DockStyle.Fill,
-            Margin = Padding.Empty,
-            Padding = new Padding(13)
+            Margin = new Padding(0, 3, 0, 6),
+            Padding = new Padding(13, 9, 13, 9)
         };
 
         var tabla = new TableLayoutPanel
@@ -333,21 +281,116 @@ public class ExploradorPrincipal : UserControl
             BackColor = Color.Transparent
         };
 
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 35));
+
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
+
+        lblEstado.Dock = DockStyle.Fill;
+        lblEstado.BackColor = Color.Transparent;
+        lblEstado.ForeColor = TransRedTheme.Bosque;
+        lblEstado.Font = new Font(
+            "Segoe UI", 12, FontStyle.Bold);
+        lblEstado.TextAlign = ContentAlignment.MiddleLeft;
+        lblEstado.AutoEllipsis = true;
+
+        lblResumen.Dock = DockStyle.Fill;
+        lblResumen.BackColor = Color.Transparent;
+        lblResumen.ForeColor =
+            TransRedTheme.TextoSecundario;
+        lblResumen.Font = new Font("Segoe UI", 9);
+        lblResumen.TextAlign = ContentAlignment.MiddleLeft;
+        lblResumen.AutoEllipsis = true;
+
+        tabla.Controls.Add(lblEstado, 0, 0);
+        tabla.Controls.Add(lblResumen, 0, 1);
+
+        tarjeta.Controls.Add(tabla);
+        return tarjeta;
+    }
+
+    private Control CrearItinerario()
+    {
+        var contenedor = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = Padding.Empty,
+            Padding = new Padding(0, 8, 0, 0),
+            BackColor = Color.Transparent
+        };
+
+        contenedor.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 28));
+
+        contenedor.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
+
+        contenedor.Controls.Add(
+            Etiqueta(
+                "PARADAS DEL RECORRIDO",
+                8,
+                TransRedTheme.TextoTenue,
+                true),
+            0, 0);
+
+        listaPasos.Dock = DockStyle.Fill;
+        listaPasos.FlowDirection = FlowDirection.TopDown;
+        listaPasos.WrapContents = false;
+        listaPasos.AutoScroll = true;
+        listaPasos.Margin = Padding.Empty;
+        listaPasos.Padding = new Padding(0, 5, 4, 5);
+        listaPasos.BackColor = Color.Transparent;
+
+        listaPasos.Resize += (_, _) =>
+        {
+            foreach (Control control in listaPasos.Controls)
+                control.Width = Math.Max(
+                    100, listaPasos.ClientSize.Width - 8);
+        };
+
+        contenedor.Controls.Add(listaPasos, 0, 1);
+        return contenedor;
+    }
+
+    private Control CrearMapa()
+    {
+        var superficie = new GradientSurface(
+            Color.FromArgb(239, 245, 236),
+            Color.FromArgb(228, 238, 228),
+            22)
+        {
+            Dock = DockStyle.Fill,
+            Margin = Padding.Empty,
+            Padding = new Padding(14)
+        };
+
+        var tabla = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = Padding.Empty,
+            BackColor = Color.Transparent
+        };
+
         tabla.ColumnStyles.Add(
             new ColumnStyle(SizeType.Percent, 100));
 
         tabla.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 46));
+            new RowStyle(SizeType.Absolute, 48));
 
         tabla.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
         tabla.Controls.Add(
-            CrearEtiqueta(
-                "RED REGIONAL   /   MAPA INTERACTIVO",
+            Etiqueta(
+                "RED REGIONAL  /  EXPLORADOR INTERACTIVO",
                 9,
-                true,
-                TransRedTheme.Bosque),
+                TransRedTheme.Bosque,
+                true),
             0, 0);
 
         tabla.Controls.Add(mapa, 0, 1);
@@ -361,9 +404,7 @@ public class ExploradorPrincipal : UserControl
         cmbOrigen.Items.Clear();
         cmbDestino.Items.Clear();
 
-        Parada[] paradas = gestor.ObtenerTodasParadas();
-
-        foreach (Parada parada in paradas)
+        foreach (Parada parada in gestor.ObtenerTodasParadas())
         {
             cmbOrigen.Items.Add(parada);
             cmbDestino.Items.Add(parada);
@@ -394,43 +435,85 @@ public class ExploradorPrincipal : UserControl
             : TransRedTheme.Bosque;
     }
 
+    private void MostrarEstadoInicial()
+    {
+        lblEstado.Text = "Tu viaje empieza aquí";
+        lblResumen.Text = "Elige origen, destino y tipo de ruta";
+
+        listaPasos.Controls.Clear();
+    }
+
     private void CalcularRuta()
     {
         if (cmbOrigen.SelectedItem is not Parada origen ||
             cmbDestino.SelectedItem is not Parada destino)
         {
-            lblEstado.Text = "Selecciona ambas paradas";
-            lblDetalle.Text =
-                "Necesitamos un origen y un destino";
+            lblEstado.Text = "Faltan paradas";
+            lblResumen.Text = "Selecciona origen y destino";
+
+            listaPasos.Controls.Clear();
             mapa.MostrarRuta(Array.Empty<string>());
             return;
         }
 
         if (origen.Codigo == destino.Codigo)
         {
-            lblEstado.Text = "Elige un destino diferente";
-            lblDetalle.Text =
-                "Origen y destino no pueden ser iguales";
+            lblEstado.Text = "Destino no válido";
+            lblResumen.Text = "Elige dos paradas diferentes";
+
+            listaPasos.Controls.Clear();
             mapa.MostrarRuta(Array.Empty<string>());
             return;
         }
 
-        // Utiliza el mismo cálculo del Core
+        // El Core conserva todo el cálculo de Dijkstra
         ResultadoRuta? resultado =
             gestor.ObtenerResultadoRuta(
                 origen.Codigo,
                 destino.Codigo,
-                usarCosto);
+                usarCosto
+            );
 
         if (resultado == null ||
             resultado.Paradas.Length == 0)
         {
-            lblEstado.Text = "No se encontró un recorrido";
-            lblDetalle.Text =
-                "Prueba con otras paradas";
+            lblEstado.Text = "Ruta no disponible";
+            lblResumen.Text = "No existe un camino entre esas paradas";
+
+            listaPasos.Controls.Clear();
             mapa.MostrarRuta(Array.Empty<string>());
             return;
         }
+
+        MostrarResultado(resultado);
+    }
+
+    private void MostrarResultado(ResultadoRuta resultado)
+    {
+        lblEstado.Text = usarCosto
+            ? $"Q {resultado.CostoTotal:0.##}  ·  Económica"
+            : $"{resultado.TiempoTotal:0.##} min  ·  Rápida";
+
+        lblResumen.Text =
+            $"{resultado.TiempoTotal:0.##} min   ·   " +
+            $"Q {resultado.CostoTotal:0.##}   ·   " +
+            $"{resultado.Paradas.Length} paradas";
+
+        listaPasos.SuspendLayout();
+        listaPasos.Controls.Clear();
+
+        for (int i = 0; i < resultado.Paradas.Length; i++)
+        {
+            Parada parada = resultado.Paradas[i];
+
+            bool primera = i == 0;
+            bool ultima = i == resultado.Paradas.Length - 1;
+
+            listaPasos.Controls.Add(
+                CrearPaso(parada, i + 1, primera, ultima));
+        }
+
+        listaPasos.ResumeLayout(true);
 
         string[] codigos = new string[
             resultado.Paradas.Length];
@@ -438,24 +521,98 @@ public class ExploradorPrincipal : UserControl
         for (int i = 0; i < codigos.Length; i++)
             codigos[i] = resultado.Paradas[i].Codigo;
 
-        lblEstado.Text = usarCosto
-            ? $"Q {resultado.CostoTotal:0.##} · Ruta económica"
-            : $"{resultado.TiempoTotal:0.##} min · Ruta rápida";
-
-        lblDetalle.Text =
-            $"{resultado.Paradas.Length} paradas\n" +
-            $"{resultado.TiempoTotal:0.##} min  ·  " +
-            $"Q {resultado.CostoTotal:0.##}\n" +
-            $"{origen.Nombre} → {destino.Nombre}";
-
         mapa.MostrarRuta(codigos);
     }
 
-    private static Label CrearEtiqueta(
+    private Control CrearPaso(
+        Parada parada,
+        int numero,
+        bool inicio,
+        bool fin)
+    {
+        Color acento = inicio
+            ? TransRedTheme.Acento
+            : fin
+                ? TransRedTheme.Cobre
+                : Color.FromArgb(153, 183, 158);
+
+        var fila = new TableLayoutPanel
+        {
+            Width = Math.Max(
+                150, listaPasos.ClientSize.Width - 8),
+            Height = 56,
+            ColumnCount = 2,
+            RowCount = 1,
+            Margin = new Padding(0, 0, 0, 4),
+            Padding = Padding.Empty,
+            BackColor = Color.Transparent
+        };
+
+        fila.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Absolute, 40));
+
+        fila.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Percent, 100));
+
+        var marca = new Label
+        {
+            Text = inicio ? "●" : fin ? "◆" : "○",
+            Dock = DockStyle.Fill,
+            Font = new Font("Segoe UI Symbol", 16),
+            ForeColor = acento,
+            BackColor = Color.Transparent,
+            TextAlign = ContentAlignment.MiddleCenter
+        };
+
+        var informacion = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            RowCount = 2,
+            ColumnCount = 1,
+            BackColor = Color.Transparent,
+            Margin = Padding.Empty
+        };
+
+        informacion.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 25));
+
+        informacion.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
+
+        string titulo = inicio
+            ? $"ORIGEN  ·  {parada.Codigo}"
+            : fin
+                ? $"DESTINO  ·  {parada.Codigo}"
+                : $"{numero:00}  ·  {parada.Codigo}";
+
+        informacion.Controls.Add(
+            Etiqueta(
+                titulo,
+                9,
+                inicio || fin
+                    ? TransRedTheme.Bosque
+                    : TransRedTheme.Acento,
+                true),
+            0, 0);
+
+        informacion.Controls.Add(
+            Etiqueta(
+                parada.Nombre,
+                8.5f,
+                TransRedTheme.TextoSecundario),
+            0, 1);
+
+        fila.Controls.Add(marca, 0, 0);
+        fila.Controls.Add(informacion, 1, 0);
+
+        return fila;
+    }
+
+    private static Label Etiqueta(
         string texto,
         float tamano,
-        bool negrita,
-        Color color)
+        Color color,
+        bool negrita = false)
     {
         return new Label
         {
