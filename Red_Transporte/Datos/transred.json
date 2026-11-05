@@ -1,0 +1,13 @@
+{
+  "Nombre": "Red de transporte del suroccidente de Guatemala",
+  "Version": 1,
+  "Paradas": [
+    {
+      "Codigo": "TEST-01",
+      "Nombre": "Parada de prueba",
+      "Latitud": 14.8347,
+      "Longitud": -91.518
+    }
+  ],
+  "Conexiones": []
+}

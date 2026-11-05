@@ -1,8 +1,12 @@
 ﻿using System.Globalization;
 using TransRed.Core.Modelos;
 using TransRed.Core.Servicios;
+using TransRed.Core.Servicios.Persistencia;
 
-GestorTransporte gestor = new GestorTransporte();
+string rutaDatos = RutasTransRed.ObtenerArchivoPrincipal();
+
+GestorTransportePersistente gestor =
+    new GestorTransportePersistente(rutaDatos);
 
 bool continuar = true;
 
