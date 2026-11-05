@@ -63,6 +63,8 @@ public static class MainShell
                 "Explorar red" => CrearContenido(gestor),
                 "Paradas" => new VistaParadas(gestor),
                 "Conexiones" => new VistaConexiones(gestor),
+                "Planificar" => new VistaPlanificar(gestor),
+                "Algoritmos" => new VistaAlgoritmos(gestor),
                 _ => CrearVistaSeccion(seccion)
             };
 
