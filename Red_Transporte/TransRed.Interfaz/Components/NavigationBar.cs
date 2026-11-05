@@ -1,5 +1,6 @@
-using System.ComponentModel;
+
 using System;
+using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
@@ -7,7 +8,7 @@ using TransRed.Interfaz.Design;
 
 namespace TransRed.Interfaz.Components;
 
-// Navegación vertical de Mobility Studio
+// Menú lateral principal de TransRed
 public class NavigationBar : UserControl
 {
     private readonly Action<string> cambiarVista;
@@ -19,7 +20,7 @@ public class NavigationBar : UserControl
 
         Dock = DockStyle.Fill;
         BackColor = TransRedTheme.SuperficieAlterna;
-        Padding = new Padding(14, 18, 12, 16);
+        Padding = new Padding(13, 18, 10, 15);
 
         var contenedor = new TableLayoutPanel
         {
@@ -34,21 +35,24 @@ public class NavigationBar : UserControl
             new ColumnStyle(SizeType.Percent, 100));
 
         contenedor.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 32));
+            new RowStyle(SizeType.Absolute, 34));
 
         contenedor.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
         contenedor.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 68));
+            new RowStyle(SizeType.Absolute, 70));
 
         var etiqueta = new Label
         {
             Text = "ESPACIO DE TRABAJO",
             Dock = DockStyle.Fill,
-            Font = new Font("Segoe UI", 8, FontStyle.Bold),
+            Margin = Padding.Empty,
             ForeColor = TransRedTheme.TextoTenue,
-            TextAlign = ContentAlignment.MiddleLeft
+            Font = new Font(
+                "Segoe UI", 8, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoEllipsis = false
         };
 
         lista = new FlowLayoutPanel
@@ -58,25 +62,23 @@ public class NavigationBar : UserControl
             WrapContents = false,
             AutoScroll = false,
             Margin = Padding.Empty,
+            Padding = Padding.Empty,
             BackColor = TransRedTheme.SuperficieAlterna
         };
 
+        // Cuatro secciones, sin duplicar la planificación
         Agregar("Explorar red", "◎");
         Agregar("Paradas", "⌖");
         Agregar("Conexiones", "◇");
-        Agregar("Planificar", "↗");
         Agregar("Algoritmos", "≡");
 
-        lista.Resize += (_, _) =>
-        {
-            foreach (Control control in lista.Controls)
-                control.Width = Math.Max(80, lista.ClientSize.Width - 4);
-        };
+        lista.Resize += (_, _) => AjustarElementos();
 
         var pie = new Label
         {
             Text = "TRANSRED  /  2026\nMovilidad del suroccidente",
             Dock = DockStyle.Fill,
+            Margin = Padding.Empty,
             ForeColor = TransRedTheme.TextoTenue,
             Font = new Font("Segoe UI", 8.5f),
             TextAlign = ContentAlignment.BottomLeft
@@ -96,7 +98,7 @@ public class NavigationBar : UserControl
         var item = new ElementoNavegacion(
             nombre, icono)
         {
-            Width = 174,
+            Width = 150,
             Height = 48,
             Margin = new Padding(0, 0, 0, 8)
         };
@@ -110,6 +112,17 @@ public class NavigationBar : UserControl
         lista.Controls.Add(item);
     }
 
+    private void AjustarElementos()
+    {
+        int ancho = Math.Max(
+            100, lista.ClientSize.Width - 3);
+
+        foreach (Control control in lista.Controls)
+        {
+            control.Width = ancho;
+        }
+    }
+
     public void Seleccionar(string nombre)
     {
         foreach (Control control in lista.Controls)
@@ -117,24 +130,24 @@ public class NavigationBar : UserControl
             if (control is ElementoNavegacion item)
             {
                 item.Activo = item.Nombre == nombre;
-                item.Invalidate();
             }
         }
     }
 }
 
-// Elemento dibujado con estados normal, hover y activo
+// Elemento con selección, hover y teclado
 internal sealed class ElementoNavegacion : Control
 {
     private readonly string nombre;
     private readonly string icono;
+
     private bool activo;
     private bool encima;
 
     public string Nombre => nombre;
 
-    
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    [DesignerSerializationVisibility(
+        DesignerSerializationVisibility.Hidden)]
     public bool Activo
     {
         get => activo;
@@ -145,7 +158,6 @@ internal sealed class ElementoNavegacion : Control
         }
     }
 
-
     public ElementoNavegacion(
         string nombre, string icono)
     {
@@ -155,6 +167,7 @@ internal sealed class ElementoNavegacion : Control
         Cursor = Cursors.Hand;
         DoubleBuffered = true;
         BackColor = TransRedTheme.SuperficieAlterna;
+
         TabStop = true;
 
         AccessibleName = nombre;
@@ -175,6 +188,18 @@ internal sealed class ElementoNavegacion : Control
         Invalidate();
     }
 
+    protected override void OnGotFocus(EventArgs e)
+    {
+        base.OnGotFocus(e);
+        Invalidate();
+    }
+
+    protected override void OnLostFocus(EventArgs e)
+    {
+        base.OnLostFocus(e);
+        Invalidate();
+    }
+
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
@@ -183,7 +208,9 @@ internal sealed class ElementoNavegacion : Control
             e.KeyCode == Keys.Space)
         {
             OnClick(EventArgs.Empty);
+
             e.Handled = true;
+            e.SuppressKeyPress = true;
         }
     }
 
@@ -191,14 +218,18 @@ internal sealed class ElementoNavegacion : Control
     {
         base.OnPaint(e);
 
-        var g = e.Graphics;
+        Graphics g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
 
-        Rectangle area = new Rectangle(
+        g.Clear(BackColor);
+
+        var area = new Rectangle(
             1, 1,
             Math.Max(1, Width - 3),
             Math.Max(1, Height - 3)
         );
+
+        using var forma = CrearForma(area, 12);
 
         if (activo)
         {
@@ -209,7 +240,6 @@ internal sealed class ElementoNavegacion : Control
                 LinearGradientMode.Horizontal
             );
 
-            using var forma = FormaRedondeada(area, 13);
             g.FillPath(fondo, forma);
         }
         else if (encima || Focused)
@@ -217,31 +247,33 @@ internal sealed class ElementoNavegacion : Control
             using var fondo = new SolidBrush(
                 TransRedTheme.AcentoSuave);
 
-            using var forma = FormaRedondeada(area, 13);
             g.FillPath(fondo, forma);
         }
 
-        Color color = activo
+        Color tinta = activo
             ? Color.White
             : TransRedTheme.Tinta;
 
-        using var fuenteIcono =
-            new Font("Segoe UI Symbol", 16);
+        using var fuenteIcono = new Font(
+            "Segoe UI Symbol", 15);
 
         using var fuenteTexto = new Font(
             "Segoe UI",
-            9.5f,
-            activo ? FontStyle.Bold : FontStyle.Regular
+            9.3f,
+            activo
+                ? FontStyle.Bold
+                : FontStyle.Regular
         );
 
         TextRenderer.DrawText(
             g,
             icono,
             fuenteIcono,
-            new Rectangle(13, 0, 29, Height),
-            color,
+            new Rectangle(10, 0, 28, Height),
+            tinta,
             TextFormatFlags.HorizontalCenter |
-            TextFormatFlags.VerticalCenter
+            TextFormatFlags.VerticalCenter |
+            TextFormatFlags.NoPadding
         );
 
         TextRenderer.DrawText(
@@ -249,29 +281,50 @@ internal sealed class ElementoNavegacion : Control
             nombre,
             fuenteTexto,
             new Rectangle(
-                50, 0,
-                Math.Max(1, Width - 55),
+                43, 0,
+                Math.Max(1, Width - 49),
                 Height
             ),
-            color,
+            tinta,
             TextFormatFlags.Left |
             TextFormatFlags.VerticalCenter |
             TextFormatFlags.EndEllipsis
         );
     }
 
-    private static GraphicsPath FormaRedondeada(
-        Rectangle r, int radio)
+    private static GraphicsPath CrearForma(
+        Rectangle rectangulo, int radio)
     {
-        var p = new GraphicsPath();
-        int d = radio * 2;
+        var camino = new GraphicsPath();
 
-        p.AddArc(r.Left, r.Top, d, d, 180, 90);
-        p.AddArc(r.Right - d, r.Top, d, d, 270, 90);
-        p.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
-        p.AddArc(r.Left, r.Bottom - d, d, d, 90, 90);
-        p.CloseFigure();
+        int diametro = radio * 2;
 
-        return p;
+        camino.AddArc(
+            rectangulo.Left,
+            rectangulo.Top,
+            diametro, diametro,
+            180, 90);
+
+        camino.AddArc(
+            rectangulo.Right - diametro,
+            rectangulo.Top,
+            diametro, diametro,
+            270, 90);
+
+        camino.AddArc(
+            rectangulo.Right - diametro,
+            rectangulo.Bottom - diametro,
+            diametro, diametro,
+            0, 90);
+
+        camino.AddArc(
+            rectangulo.Left,
+            rectangulo.Bottom - diametro,
+            diametro, diametro,
+            90, 90);
+
+        camino.CloseFigure();
+
+        return camino;
     }
 }

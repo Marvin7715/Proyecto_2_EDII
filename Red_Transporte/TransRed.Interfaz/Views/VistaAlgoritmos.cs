@@ -12,7 +12,7 @@ using TransRed.Interfaz.Design;
 
 namespace TransRed.Interfaz.Views;
 
-// Laboratorio visual conectado a los algoritmos del Core
+// Laboratorio interactivo de grafos y algoritmos
 public class VistaAlgoritmos : UserControl
 {
     private readonly IGestorTransporte gestor;
@@ -36,32 +36,32 @@ public class VistaAlgoritmos : UserControl
     private readonly Label lblUnion = new();
 
     private readonly FlowLayoutPanel listaPasos = new();
-    private readonly GrafoLaboratorio grafo;
+    private readonly Panel areaPrincipal = new();
 
     private readonly System.Windows.Forms.Timer temporizador = new();
 
-    private readonly Panel areaPrincipal = new();
+    private readonly GrafoLaboratorio grafo;
 
     private Control vistaRecorrido = null!;
     private Control vistaUnion = null!;
 
     private Parada[] recorrido = Array.Empty<Parada>();
 
-    private string algoritmo = "BFS";
     private int pasoActual;
+    private string algoritmo = "BFS";
 
     public VistaAlgoritmos(IGestorTransporte gestor)
     {
         this.gestor = gestor;
 
+        Dock = DockStyle.Fill;
+        Padding = new Padding(20, 13, 20, 16);
+        BackColor = TransRedTheme.Fondo;
+
         grafo = new GrafoLaboratorio(gestor)
         {
             Dock = DockStyle.Fill
         };
-
-        Dock = DockStyle.Fill;
-        Padding = new Padding(22, 16, 22, 18);
-        BackColor = TransRedTheme.Fondo;
 
         temporizador.Interval = 420;
         temporizador.Tick += (_, _) => Avanzar();
@@ -79,18 +79,19 @@ public class VistaAlgoritmos : UserControl
             new ColumnStyle(SizeType.Percent, 100));
 
         principal.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 93));
+            new RowStyle(SizeType.Absolute, 108));
 
         principal.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 57));
+            new RowStyle(SizeType.Absolute, 60));
 
         principal.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
         principal.Controls.Add(CrearEncabezado(), 0, 0);
-        principal.Controls.Add(CrearNavegacion(), 0, 1);
+        principal.Controls.Add(CrearPestanas(), 0, 1);
 
         areaPrincipal.Dock = DockStyle.Fill;
+        areaPrincipal.Margin = Padding.Empty;
         areaPrincipal.BackColor = TransRedTheme.Fondo;
 
         vistaRecorrido = CrearVistaRecorrido();
@@ -113,48 +114,64 @@ public class VistaAlgoritmos : UserControl
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 3,
+            Margin = Padding.Empty,
             BackColor = Color.Transparent
         };
 
-        tabla.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 23));
+        tabla.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Percent, 100));
 
         tabla.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 43));
+            new RowStyle(SizeType.Absolute, 25));
+
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 49));
 
         tabla.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
         tabla.Controls.Add(
-            Texto("LABORATORIO / GRAFOS", 8,
-                TransRedTheme.Cobre, true),
+            Texto(
+                "LABORATORIO / GRAFOS",
+                8,
+                TransRedTheme.Cobre,
+                true),
             0, 0);
 
         tabla.Controls.Add(
-            Texto("Explora los algoritmos", 21,
-                TransRedTheme.Tinta, true),
+            Texto(
+                "Explora los algoritmos",
+                21,
+                TransRedTheme.Tinta,
+                true),
             0, 1);
 
         tabla.Controls.Add(
-            Texto("Visualiza recorridos y conectividad",
-                9, TransRedTheme.TextoSecundario),
+            Texto(
+                "Visualiza recorridos y conectividad",
+                9.5f,
+                TransRedTheme.TextoSecundario),
             0, 2);
 
         return tabla;
     }
 
-    private Control CrearNavegacion()
+    private Control CrearPestanas()
     {
         var barra = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.LeftToRight,
             WrapContents = false,
+            AutoScroll = false,
+            Margin = Padding.Empty,
+            Padding = new Padding(0, 6, 0, 5),
             BackColor = Color.Transparent
         };
 
         ConfigurarPestana(btnBFS, "BFS", 105);
         ConfigurarPestana(btnDFS, "DFS", 105);
-        ConfigurarPestana(btnUnion, "Union-Find", 145);
+        ConfigurarPestana(btnUnion, "Union-Find", 140);
 
         btnBFS.Click += (_, _) =>
             SeleccionarAlgoritmo("BFS");
@@ -173,17 +190,20 @@ public class VistaAlgoritmos : UserControl
     }
 
     private static void ConfigurarPestana(
-        Button boton, string nombre, int ancho)
+        Button boton, string titulo, int ancho)
     {
-        boton.Text = nombre;
+        boton.Text = titulo;
         boton.Width = ancho;
-        boton.Height = 42;
-        boton.Margin = new Padding(0, 3, 8, 0);
+        boton.Height = 43;
+
+        boton.Margin = new Padding(0, 0, 8, 0);
+
         boton.Font = new Font("Segoe UI", 9.5f);
         boton.FlatStyle = FlatStyle.Flat;
         boton.FlatAppearance.BorderSize = 0;
-        boton.UseVisualStyleBackColor = false;
+
         boton.Cursor = Cursors.Hand;
+        boton.UseVisualStyleBackColor = false;
     }
 
     private Control CrearVistaRecorrido()
@@ -195,14 +215,15 @@ public class VistaAlgoritmos : UserControl
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 3,
+            Margin = Padding.Empty,
             BackColor = Color.Transparent
         };
 
         tabla.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 75));
+            new RowStyle(SizeType.Absolute, 85));
 
         tabla.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 93));
+            new RowStyle(SizeType.Absolute, 103));
 
         tabla.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
@@ -212,24 +233,31 @@ public class VistaAlgoritmos : UserControl
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 2,
+            Margin = Padding.Empty,
             BackColor = Color.Transparent
         };
 
         encabezado.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 43));
+            new RowStyle(SizeType.Absolute, 51));
 
         encabezado.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
         lblTitulo.Dock = DockStyle.Fill;
+        lblTitulo.Margin = Padding.Empty;
         lblTitulo.Font = new Font(
             "Segoe UI", 18, FontStyle.Bold);
         lblTitulo.ForeColor = TransRedTheme.Tinta;
+        lblTitulo.TextAlign = ContentAlignment.MiddleLeft;
+        lblTitulo.AutoEllipsis = false;
 
         lblDescripcion.Dock = DockStyle.Fill;
-        lblDescripcion.Font = new Font("Segoe UI", 9);
+        lblDescripcion.Margin = Padding.Empty;
+        lblDescripcion.Font = new Font("Segoe UI", 9.5f);
         lblDescripcion.ForeColor =
             TransRedTheme.TextoSecundario;
+        lblDescripcion.TextAlign =
+            ContentAlignment.MiddleLeft;
 
         encabezado.Controls.Add(lblTitulo, 0, 0);
         encabezado.Controls.Add(lblDescripcion, 0, 1);
@@ -239,23 +267,40 @@ public class VistaAlgoritmos : UserControl
         var controles = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.LeftToRight,
             WrapContents = true,
-            BackColor = Color.Transparent,
-            Padding = new Padding(0, 4, 0, 0)
+            AutoScroll = true,
+            Margin = Padding.Empty,
+            Padding = new Padding(0, 4, 0, 4),
+            BackColor = Color.Transparent
         };
 
         controles.Controls.Add(
-            CrearCampo("PARADA INICIAL", cmbInicio, 260));
+            CrearCampo("PARADA INICIAL", cmbInicio, 240));
 
-        PrepararBoton(btnEjecutar, "Ejecutar", 125, true);
-        PrepararBoton(btnAnterior, "Anterior", 90);
-        PrepararBoton(btnSiguiente, "Siguiente", 100);
-        PrepararBoton(btnReproducir, "Reproducir", 115);
+        PrepararBoton(
+            btnEjecutar, "Ejecutar", 115, true);
 
-        btnEjecutar.Click += (_, _) => EjecutarRecorrido();
-        btnAnterior.Click += (_, _) => CambiarPaso(-1);
-        btnSiguiente.Click += (_, _) => CambiarPaso(1);
-        btnReproducir.Click += (_, _) => AlternarReproduccion();
+        PrepararBoton(
+            btnAnterior, "Anterior", 90);
+
+        PrepararBoton(
+            btnSiguiente, "Siguiente", 96);
+
+        PrepararBoton(
+            btnReproducir, "Reproducir", 112);
+
+        btnEjecutar.Click += (_, _) =>
+            EjecutarRecorrido();
+
+        btnAnterior.Click += (_, _) =>
+            CambiarPaso(-1);
+
+        btnSiguiente.Click += (_, _) =>
+            CambiarPaso(1);
+
+        btnReproducir.Click += (_, _) =>
+            AlternarReproduccion();
 
         controles.Controls.Add(btnEjecutar);
         controles.Controls.Add(btnAnterior);
@@ -264,33 +309,11 @@ public class VistaAlgoritmos : UserControl
 
         tabla.Controls.Add(controles, 0, 1);
 
-        var cuerpo = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 1,
-            Margin = Padding.Empty,
-            BackColor = Color.Transparent
-        };
+        var cuerpo = CrearDistribucion();
 
-        cuerpo.ColumnStyles.Add(
-            new ColumnStyle(SizeType.Percent, 65));
-
-        cuerpo.ColumnStyles.Add(
-            new ColumnStyle(SizeType.Percent, 35));
-
-        cuerpo.RowStyles.Add(
-            new RowStyle(SizeType.Percent, 100));
-
-        var espacioGrafo = new Panel
-        {
-            Dock = DockStyle.Fill,
-            BackColor = TransRedTheme.FondoMapa,
-            Margin = new Padding(0, 0, 12, 0),
-            Name = "EspacioGrafo"
-        };
-
+        var espacioGrafo = CrearEspacioGrafo();
         espacioGrafo.Controls.Add(grafo);
+
         cuerpo.Controls.Add(espacioGrafo, 0, 0);
 
         var lateral = new TableLayoutPanel
@@ -298,6 +321,7 @@ public class VistaAlgoritmos : UserControl
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 3,
+            Margin = Padding.Empty,
             BackColor = Color.Transparent
         };
 
@@ -305,32 +329,37 @@ public class VistaAlgoritmos : UserControl
             new RowStyle(SizeType.Absolute, 32));
 
         lateral.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 35));
+            new RowStyle(SizeType.Absolute, 37));
 
         lateral.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
         lateral.Controls.Add(
-            Texto("SECUENCIA DE VISITA", 8.5f,
-                TransRedTheme.TextoTenue, true),
+            Texto(
+                "SECUENCIA DE VISITA",
+                8,
+                TransRedTheme.TextoTenue,
+                true),
             0, 0);
 
         lblEstado.Dock = DockStyle.Fill;
+        lblEstado.Margin = Padding.Empty;
         lblEstado.ForeColor = TransRedTheme.Acento;
         lblEstado.Font = new Font(
             "Segoe UI", 9.5f, FontStyle.Bold);
         lblEstado.TextAlign = ContentAlignment.MiddleLeft;
+        lblEstado.AutoEllipsis = true;
 
         lateral.Controls.Add(lblEstado, 0, 1);
 
         listaPasos.Dock = DockStyle.Fill;
-        listaPasos.AutoScroll = true;
-        listaPasos.WrapContents = false;
+        listaPasos.Margin = Padding.Empty;
+        listaPasos.Padding = new Padding(5);
         listaPasos.FlowDirection = FlowDirection.TopDown;
+        listaPasos.WrapContents = false;
+        listaPasos.AutoScroll = true;
         listaPasos.BackColor =
             TransRedTheme.SuperficieAlterna;
-        listaPasos.Padding = new Padding(5);
-        listaPasos.Margin = Padding.Empty;
 
         listaPasos.Resize += (_, _) => AjustarLista();
 
@@ -352,49 +381,96 @@ public class VistaAlgoritmos : UserControl
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 3,
+            Margin = Padding.Empty,
             BackColor = Color.Transparent
         };
 
         tabla.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 70));
+            new RowStyle(SizeType.Absolute, 76));
 
         tabla.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 100));
+            new RowStyle(SizeType.Absolute, 104));
 
         tabla.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
         tabla.Controls.Add(
-            Texto("Conectividad entre paradas", 18,
-                TransRedTheme.Tinta, true),
+            Texto(
+                "Conectividad entre paradas",
+                18,
+                TransRedTheme.Tinta,
+                true),
             0, 0);
 
         var controles = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.LeftToRight,
             WrapContents = true,
+            AutoScroll = true,
+            Margin = Padding.Empty,
+            Padding = new Padding(0, 5, 0, 4),
             BackColor = Color.Transparent
         };
 
         controles.Controls.Add(
-            CrearCampo("ORIGEN", cmbOrigen, 250));
+            CrearCampo("ORIGEN", cmbOrigen, 245));
 
         controles.Controls.Add(
-            CrearCampo("DESTINO", cmbDestino, 250));
+            CrearCampo("DESTINO", cmbDestino, 245));
 
         var comprobar = new Button();
-        PrepararBoton(comprobar, "Comprobar", 135, true);
 
-        comprobar.Click += (_, _) => ComprobarConexion();
+        PrepararBoton(
+            comprobar, "Comprobar", 125, true);
+
+        comprobar.Click += (_, _) =>
+            ComprobarConexion();
+
         controles.Controls.Add(comprobar);
 
         tabla.Controls.Add(controles, 0, 1);
 
+        var cuerpo = CrearDistribucion();
+
+        // El grafo se trasladará aquí al entrar
+        // a la pestaña Union-Find.
+        cuerpo.Controls.Add(CrearEspacioGrafo(), 0, 0);
+
+        var resultado = new GradientSurface(
+            Color.FromArgb(234, 243, 232),
+            Color.FromArgb(248, 245, 237),
+            14)
+        {
+            Dock = DockStyle.Fill,
+            Margin = Padding.Empty,
+            Padding = new Padding(16)
+        };
+
+        lblUnion.Dock = DockStyle.Fill;
+        lblUnion.Margin = Padding.Empty;
+        lblUnion.Font = new Font(
+            "Segoe UI", 12, FontStyle.Bold);
+        lblUnion.ForeColor = TransRedTheme.Bosque;
+        lblUnion.TextAlign = ContentAlignment.MiddleCenter;
+
+        resultado.Controls.Add(lblUnion);
+        cuerpo.Controls.Add(resultado, 1, 0);
+
+        tabla.Controls.Add(cuerpo, 0, 2);
+        tarjeta.Controls.Add(tabla);
+
+        return tarjeta;
+    }
+
+    private static TableLayoutPanel CrearDistribucion()
+    {
         var cuerpo = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
             RowCount = 1,
+            Margin = Padding.Empty,
             BackColor = Color.Transparent
         };
 
@@ -404,39 +480,21 @@ public class VistaAlgoritmos : UserControl
         cuerpo.ColumnStyles.Add(
             new ColumnStyle(SizeType.Percent, 35));
 
-        var espacioGrafo = new Panel
+        cuerpo.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
+
+        return cuerpo;
+    }
+
+    private static Panel CrearEspacioGrafo()
+    {
+        return new Panel
         {
+            Name = "EspacioGrafo",
             Dock = DockStyle.Fill,
-            BackColor = TransRedTheme.FondoMapa,
             Margin = new Padding(0, 0, 12, 0),
-            Name = "EspacioGrafo"
+            BackColor = TransRedTheme.FondoMapa
         };
-
-        cuerpo.Controls.Add(espacioGrafo, 0, 0);
-
-        var panelResultado = new GradientSurface(
-            Color.FromArgb(234, 243, 232),
-            Color.FromArgb(248, 245, 237),
-            14)
-        {
-            Dock = DockStyle.Fill,
-            Padding = new Padding(18),
-            Margin = Padding.Empty
-        };
-
-        lblUnion.Dock = DockStyle.Fill;
-        lblUnion.Font = new Font(
-            "Segoe UI", 13, FontStyle.Bold);
-        lblUnion.ForeColor = TransRedTheme.Bosque;
-        lblUnion.TextAlign = ContentAlignment.MiddleCenter;
-
-        panelResultado.Controls.Add(lblUnion);
-        cuerpo.Controls.Add(panelResultado, 1, 0);
-
-        tabla.Controls.Add(cuerpo, 0, 2);
-        tarjeta.Controls.Add(tabla);
-
-        return tarjeta;
     }
 
     private static GradientSurface CrearTarjeta()
@@ -448,38 +506,45 @@ public class VistaAlgoritmos : UserControl
         {
             Dock = DockStyle.Fill,
             Margin = Padding.Empty,
-            Padding = new Padding(24)
+            Padding = new Padding(20, 16, 20, 18)
         };
     }
 
     private static Control CrearCampo(
-        string nombre, ComboBox combo, int ancho)
+        string titulo,
+        ComboBox combo,
+        int ancho)
     {
         var tabla = new TableLayoutPanel
         {
             Width = ancho,
-            Height = 75,
+            Height = 78,
             ColumnCount = 1,
             RowCount = 2,
+            Margin = new Padding(0, 0, 8, 0),
             BackColor = Color.Transparent
         };
 
         tabla.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 28));
+            new RowStyle(SizeType.Absolute, 30));
 
         tabla.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
         tabla.Controls.Add(
-            Texto(nombre, 8,
-                TransRedTheme.TextoSecundario, true),
+            Texto(
+                titulo,
+                8,
+                TransRedTheme.TextoSecundario,
+                true),
             0, 0);
 
         UiStyles.AplicarCombo(combo);
 
         combo.Dock = DockStyle.Top;
-        combo.DropDownWidth = 380;
         combo.Margin = Padding.Empty;
+        combo.DropDownWidth = 360;
+        combo.DropDownHeight = 290;
 
         tabla.Controls.Add(combo, 0, 1);
 
@@ -494,8 +559,8 @@ public class VistaAlgoritmos : UserControl
     {
         boton.Text = texto;
         boton.Width = ancho;
-        boton.Height = 43;
-        boton.Margin = new Padding(6, 27, 2, 0);
+        boton.Height = 40;
+        boton.Margin = new Padding(3, 33, 3, 0);
 
         if (principal)
             UiStyles.AplicarBotonPrincipal(boton);
@@ -512,7 +577,9 @@ public class VistaAlgoritmos : UserControl
 
         foreach (ComboBox combo in new[]
         {
-            cmbInicio, cmbOrigen, cmbDestino
+            cmbInicio,
+            cmbOrigen,
+            cmbDestino
         })
         {
             combo.Items.Clear();
@@ -533,9 +600,14 @@ public class VistaAlgoritmos : UserControl
         temporizador.Stop();
         algoritmo = nuevo;
 
-        EstilizarPestana(btnBFS, nuevo == "BFS");
-        EstilizarPestana(btnDFS, nuevo == "DFS");
-        EstilizarPestana(btnUnion, nuevo == "Union-Find");
+        EstilizarPestana(
+            btnBFS, nuevo == "BFS");
+
+        EstilizarPestana(
+            btnDFS, nuevo == "DFS");
+
+        EstilizarPestana(
+            btnUnion, nuevo == "Union-Find");
 
         bool esUnion = nuevo == "Union-Find";
 
@@ -547,7 +619,6 @@ public class VistaAlgoritmos : UserControl
         else
             vistaRecorrido.BringToFront();
 
-        // Traslada el mismo grafo a la vista activa
         Panel? destino = BuscarEspacioGrafo(
             esUnion ? vistaUnion : vistaRecorrido);
 
@@ -572,7 +643,9 @@ public class VistaAlgoritmos : UserControl
             ? "Explora la red por niveles"
             : "Explora cada rama antes de retroceder";
 
-        lblEstado.Text = "Selecciona una parada para comenzar";
+        lblEstado.Text =
+            "Selecciona una parada para comenzar";
+
         lblUnion.Text = "Selecciona dos paradas";
 
         btnReproducir.Text = "Reproducir";
@@ -580,7 +653,8 @@ public class VistaAlgoritmos : UserControl
     }
 
     private static void EstilizarPestana(
-        Button boton, bool seleccionada)
+        Button boton,
+        bool seleccionada)
     {
         boton.BackColor = seleccionada
             ? TransRedTheme.Bosque
@@ -597,14 +671,13 @@ public class VistaAlgoritmos : UserControl
         {
             if (control is Panel panel &&
                 panel.Name == "EspacioGrafo")
-            {
                 return panel;
-            }
 
-            Panel? encontrado = BuscarEspacioGrafo(control);
+            Panel? resultado =
+                BuscarEspacioGrafo(control);
 
-            if (encontrado != null)
-                return encontrado;
+            if (resultado != null)
+                return resultado;
         }
 
         return null;
@@ -617,16 +690,20 @@ public class VistaAlgoritmos : UserControl
 
         temporizador.Stop();
 
-        // BFS y DFS siguen ejecutándose en el Core
+        // Algoritmos originales del Core
         recorrido = algoritmo == "BFS"
             ? gestor.RecorrerBFS(inicio.Codigo)
             : gestor.RecorrerDFS(inicio.Codigo);
 
         pasoActual = 0;
+
         LimpiarLista();
         grafo.Limpiar();
 
-        lblEstado.Text = $"{recorrido.Length} paradas · Preparado";
+        lblEstado.Text = recorrido.Length == 0
+            ? "No hay paradas para recorrer"
+            : $"{recorrido.Length} paradas preparadas";
+
         btnReproducir.Text = "Pausar";
 
         ActualizarBotones();
@@ -701,12 +778,15 @@ public class VistaAlgoritmos : UserControl
 
     private void ActualizarVistaRecorrido()
     {
-        grafo.MostrarVisitados(recorrido, pasoActual);
+        grafo.MostrarVisitados(
+            recorrido,
+            pasoActual);
 
         lblEstado.Text =
             $"Paso {pasoActual} de {recorrido.Length}";
 
         LimpiarLista();
+
         listaPasos.SuspendLayout();
 
         for (int i = 0; i < pasoActual; i++)
@@ -716,10 +796,10 @@ public class VistaAlgoritmos : UserControl
             var fila = new Panel
             {
                 Width = Math.Max(
-                    130,
+                    120,
                     listaPasos.ClientSize.Width -
                     SystemInformation.VerticalScrollBarWidth - 14),
-                Height = 58,
+                Height = 60,
                 Margin = new Padding(0, 0, 0, 5),
                 Padding = new Padding(10, 5, 10, 5),
                 BackColor = i == pasoActual - 1
@@ -736,7 +816,7 @@ public class VistaAlgoritmos : UserControl
             };
 
             tabla.RowStyles.Add(
-                new RowStyle(SizeType.Absolute, 24));
+                new RowStyle(SizeType.Absolute, 26));
 
             tabla.RowStyles.Add(
                 new RowStyle(SizeType.Percent, 100));
@@ -794,13 +874,15 @@ public class VistaAlgoritmos : UserControl
     private void ActualizarBotones()
     {
         btnAnterior.Enabled =
-            recorrido.Length > 0 && pasoActual > 0;
+            recorrido.Length > 0 &&
+            pasoActual > 0;
 
         btnSiguiente.Enabled =
             recorrido.Length > 0 &&
             pasoActual < recorrido.Length;
 
-        btnReproducir.Enabled = recorrido.Length > 0;
+        btnReproducir.Enabled =
+            recorrido.Length > 0;
     }
 
     private void ComprobarConexion()
@@ -809,7 +891,6 @@ public class VistaAlgoritmos : UserControl
             cmbDestino.SelectedItem is not Parada destino)
             return;
 
-        // Union-Find sigue ejecutándose en el Core
         bool conectadas = gestor.EstanConectadas(
             origen.Codigo,
             destino.Codigo);
@@ -860,8 +941,7 @@ public class VistaAlgoritmos : UserControl
     }
 }
 
-// Dibuja la red real y destaca los nodos visitados
-// No crea conexiones falsas entre visitas de BFS y DFS
+// Visualiza las paradas y conexiones reales del Core
 internal sealed class GrafoLaboratorio : Control
 {
     private readonly Parada[] paradas;
@@ -913,7 +993,8 @@ internal sealed class GrafoLaboratorio : Control
     }
 
     public void MostrarVisitados(
-        Parada[] orden, int cantidad)
+        Parada[] orden,
+        int cantidad)
     {
         visitados.Clear();
 
@@ -935,7 +1016,9 @@ internal sealed class GrafoLaboratorio : Control
         Invalidate();
     }
 
-    public void MostrarComparacion(string origen, string destino)
+    public void MostrarComparacion(
+        string origen,
+        string destino)
     {
         visitados.Clear();
 
@@ -989,23 +1072,23 @@ internal sealed class GrafoLaboratorio : Control
             StringComparer.OrdinalIgnoreCase);
 
         foreach (Parada parada in paradas)
-        {
             indice[parada.Codigo] = parada;
-        }
 
         using var linea = new Pen(
             Color.FromArgb(115, 156, 186, 160),
             1.3f);
 
-        // Se dibujan únicamente conexiones existentes
+        // Solo dibuja conexiones existentes
         foreach (Conexion conexion in conexiones)
         {
             if (!indice.TryGetValue(
-                    conexion.CodigoOrigen, out Parada? origen))
+                    conexion.CodigoOrigen,
+                    out Parada? origen))
                 continue;
 
             if (!indice.TryGetValue(
-                    conexion.CodigoDestino, out Parada? destino))
+                    conexion.CodigoDestino,
+                    out Parada? destino))
                 continue;
 
             g.DrawLine(
@@ -1018,7 +1101,8 @@ internal sealed class GrafoLaboratorio : Control
         {
             PointF punto = ObtenerPosicion(parada);
 
-            bool visitada = visitados.Contains(parada.Codigo);
+            bool visitada =
+                visitados.Contains(parada.Codigo);
 
             bool foco = string.Equals(
                 parada.Codigo,
@@ -1046,6 +1130,7 @@ internal sealed class GrafoLaboratorio : Control
                     : Color.White;
 
             using var relleno = new SolidBrush(color);
+
             using var borde = new Pen(
                 TransRedTheme.Acento, 1.7f);
 
