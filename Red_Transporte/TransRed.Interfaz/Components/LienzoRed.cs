@@ -1,5 +1,6 @@
 
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
@@ -9,20 +10,9 @@ using TransRed.Interfaz.Design;
 
 namespace TransRed.Interfaz.Components;
 
+// Mapa esquemático interactivo de TransRed
 public class LienzoRed : Control
 {
-    private readonly Color fondo =
-        Color.FromArgb(241, 246, 242);
-
-    private readonly Color cuadricula =
-        Color.FromArgb(224, 234, 226);
-
-    private readonly Color conexionNormal =
-        Color.FromArgb(146, 180, 169);
-
-    private readonly Color conexionDirigida =
-        Color.FromArgb(186, 127, 77);
-
     private readonly IGestorTransporte gestor;
 
     private ParadaVisual[] paradas =
@@ -34,166 +24,144 @@ public class LienzoRed : Control
     private int nodoHover = -1;
     private int nodoSeleccionado = -1;
 
+    private float zoom = 1f;
+    private PointF desplazamiento = PointF.Empty;
+
+    private bool arrastrando;
+    private Point ultimoMouse;
+
+    private readonly Color fondo =
+        Color.FromArgb(238, 243, 235);
+
+    private readonly Color conexionSuave =
+        Color.FromArgb(155, 178, 163);
+
+    private readonly Color colorDirigido =
+        Color.FromArgb(190, 133, 85);
+
+    // Códigos del recorrido que se está mostrando
+    private string[] rutaVisible = Array.Empty<string>();
     public LienzoRed(IGestorTransporte gestor)
     {
         this.gestor = gestor;
 
         Dock = DockStyle.Fill;
         BackColor = fondo;
-
         DoubleBuffered = true;
         ResizeRedraw = true;
+        TabStop = true;
 
         SetStyle(
-            ControlStyles.AllPaintingInWmPaint |
             ControlStyles.UserPaint |
+            ControlStyles.AllPaintingInWmPaint |
             ControlStyles.OptimizedDoubleBuffer |
             ControlStyles.ResizeRedraw,
             true
         );
 
         ActualizarDatos();
-
-        MouseMove += LienzoRed_MouseMove;
-        MouseLeave += LienzoRed_MouseLeave;
-        MouseClick += LienzoRed_MouseClick;
     }
 
-    // Obtiene las paradas y conexiones reales del gestor.
+    // Lee únicamente los datos existentes del Core
     public void ActualizarDatos()
     {
-        Parada[] paradasReales =
+        Parada[] datosParadas =
             gestor.ObtenerTodasParadas();
 
-        Conexion[] conexionesReales =
+        Conexion[] datosConexiones =
             gestor.ObtenerTodasConexiones();
 
-        paradas = new ParadaVisual[paradasReales.Length];
+        paradas = new ParadaVisual[datosParadas.Length];
 
-        nodoSeleccionado = -1;
         nodoHover = -1;
+        nodoSeleccionado = -1;
 
-        if (paradasReales.Length == 0)
+        if (datosParadas.Length == 0)
         {
             conexiones = Array.Empty<ConexionVisual>();
             Invalidate();
             return;
         }
 
-        double latitudMinima = paradasReales[0].Latitud;
-        double latitudMaxima = paradasReales[0].Latitud;
-        double longitudMinima = paradasReales[0].Longitud;
-        double longitudMaxima = paradasReales[0].Longitud;
+        double latMin = datosParadas[0].Latitud;
+        double latMax = datosParadas[0].Latitud;
+        double lonMin = datosParadas[0].Longitud;
+        double lonMax = datosParadas[0].Longitud;
 
-        foreach (Parada parada in paradasReales)
+        foreach (Parada parada in datosParadas)
         {
-            latitudMinima = Math.Min(
-                latitudMinima,
-                parada.Latitud
-            );
+            latMin = Math.Min(latMin, parada.Latitud);
+            latMax = Math.Max(latMax, parada.Latitud);
 
-            latitudMaxima = Math.Max(
-                latitudMaxima,
-                parada.Latitud
-            );
-
-            longitudMinima = Math.Min(
-                longitudMinima,
-                parada.Longitud
-            );
-
-            longitudMaxima = Math.Max(
-                longitudMaxima,
-                parada.Longitud
-            );
+            lonMin = Math.Min(lonMin, parada.Longitud);
+            lonMax = Math.Max(lonMax, parada.Longitud);
         }
 
-        // Convierte las coordenadas geográficas en posiciones relativas.
-        for (int i = 0; i < paradasReales.Length; i++)
+        for (int i = 0; i < datosParadas.Length; i++)
         {
-            Parada parada = paradasReales[i];
+            Parada parada = datosParadas[i];
 
-            float x = longitudMaxima == longitudMinima
+            float x = lonMax == lonMin
                 ? 0.5f
                 : (float)(
-                    (parada.Longitud - longitudMinima) /
-                    (longitudMaxima - longitudMinima)
-                );
+                    (parada.Longitud - lonMin) /
+                    (lonMax - lonMin));
 
-            float y = latitudMaxima == latitudMinima
+            float y = latMax == latMin
                 ? 0.5f
                 : 1f - (float)(
-                    (parada.Latitud - latitudMinima) /
-                    (latitudMaxima - latitudMinima)
-                );
-
-            x = 0.08f + x * 0.84f;
-            y = 0.08f + y * 0.84f;
+                    (parada.Latitud - latMin) /
+                    (latMax - latMin));
 
             paradas[i] = new ParadaVisual(
                 parada.Codigo,
                 parada.Nombre,
-                x,
-                y
+                0.08f + x * 0.84f,
+                0.09f + y * 0.82f
             );
         }
 
-        // Prepara las conexiones que se dibujarán.
-        ConexionVisual[] resultado =
-            new ConexionVisual[conexionesReales.Length];
+        var lista = new List<ConexionVisual>();
 
-        int total = 0;
-
-        for (int i = 0; i < conexionesReales.Length; i++)
+        for (int i = 0; i < datosConexiones.Length; i++)
         {
-            Conexion conexion = conexionesReales[i];
+            Conexion conexion = datosConexiones[i];
 
-            int origen = BuscarIndiceParada(
-                conexion.CodigoOrigen
-            );
+            int origen =
+                BuscarIndice(conexion.CodigoOrigen);
 
-            int destino = BuscarIndiceParada(
-                conexion.CodigoDestino
-            );
+            int destino =
+                BuscarIndice(conexion.CodigoDestino);
 
-            if (origen == -1 || destino == -1)
+            if (origen < 0 || destino < 0)
                 continue;
 
-            bool existeRegreso = false;
+            bool regreso = false;
 
-            for (int j = 0; j < conexionesReales.Length; j++)
+            foreach (Conexion otra in datosConexiones)
             {
-                if (
-                    conexionesReales[j].CodigoOrigen ==
-                    conexion.CodigoDestino &&
-                    conexionesReales[j].CodigoDestino ==
-                    conexion.CodigoOrigen
-                )
+                if (otra.CodigoOrigen ==
+                        conexion.CodigoDestino &&
+                    otra.CodigoDestino ==
+                        conexion.CodigoOrigen)
                 {
-                    existeRegreso = true;
+                    regreso = true;
                     break;
                 }
             }
 
-            // Evita dibujar dos veces una conexión bidireccional.
-            if (existeRegreso && origen > destino)
+            if (regreso && origen > destino)
                 continue;
 
-            resultado[total++] = new ConexionVisual(
-                origen,
-                destino,
-                existeRegreso
-            );
+            lista.Add(new ConexionVisual(
+                origen, destino, regreso));
         }
 
-        Array.Resize(ref resultado, total);
-        conexiones = resultado;
-
+        conexiones = lista.ToArray();
         Invalidate();
     }
 
-    // Busca el índice de una parada mediante su código.
-    private int BuscarIndiceParada(string codigo)
+    private int BuscarIndice(string codigo)
     {
         for (int i = 0; i < paradas.Length; i++)
         {
@@ -204,112 +172,122 @@ public class LienzoRed : Control
         return -1;
     }
 
-    protected override void OnPaint(PaintEventArgs e)
+    // Posiciones calculadas a partir de coordenadas
+    private PointF ObtenerPosicion(int indice)
     {
-        base.OnPaint(e);
+        ParadaVisual parada = paradas[indice];
 
-        Graphics g = e.Graphics;
-        g.SmoothingMode = SmoothingMode.AntiAlias;
+        float margen = 44f;
 
-        DibujarCuadricula(g);
+        float ancho = Math.Max(1, Width - margen * 2);
+        float alto = Math.Max(1, Height - margen * 2);
 
-        if (Width < 350 || Height < 280)
-        {
-            TextRenderer.DrawText(
-                g,
-                "Amplía la ventana para visualizar la red",
-                Font,
-                ClientRectangle,
-                TransRedTheme.TextoSecundario,
-                TextFormatFlags.HorizontalCenter |
-                TextFormatFlags.VerticalCenter |
-                TextFormatFlags.WordBreak
-            );
-
-            return;
-        }
-
-        if (paradas.Length == 0)
-        {
-            TextRenderer.DrawText(
-                g,
-                "Todavía no hay paradas registradas",
-                Font,
-                ClientRectangle,
-                TransRedTheme.TextoSecundario,
-                TextFormatFlags.HorizontalCenter |
-                TextFormatFlags.VerticalCenter
-            );
-
-            return;
-        }
-
-        DibujarInformacion(g);
-        DibujarConexiones(g);
-        DibujarParadas(g);
-        DibujarLeyenda(g);
-        DibujarInformacionNodo(g);
-    }
-
-    // Dibuja la cuadrícula de fondo.
-    private void DibujarCuadricula(Graphics g)
-    {
-        const int separacion = 40;
-
-        using Pen lapiz = new Pen(cuadricula, 1);
-
-        for (int x = 0; x < Width; x += separacion)
-            g.DrawLine(lapiz, x, 0, x, Height);
-
-        for (int y = 0; y < Height; y += separacion)
-            g.DrawLine(lapiz, 0, y, Width, y);
-    }
-
-    // Convierte las posiciones relativas en píxeles.
-    private PointF ObtenerPosicion(ParadaVisual parada)
-    {
-        float margenX = Math.Min(115f, Width * 0.16f);
-        float margenY = Math.Min(105f, Height * 0.18f);
-
-        float ancho = Width - margenX * 2;
-        float alto = Height - margenY * 2;
+        float baseX = margen + parada.X * ancho;
+        float baseY = margen + parada.Y * alto;
 
         return new PointF(
-            margenX + parada.X * ancho,
-            margenY + parada.Y * alto
+            Width / 2f +
+                (baseX - Width / 2f) * zoom +
+                desplazamiento.X,
+            Height / 2f +
+                (baseY - Height / 2f) * zoom +
+                desplazamiento.Y
         );
     }
 
-    // Busca si el cursor está sobre una parada.
-    private int BuscarNodo(Point posicion)
+    private int BuscarNodo(Point punto)
     {
-        for (int i = 0; i < paradas.Length; i++)
+        for (int i = paradas.Length - 1; i >= 0; i--)
         {
-            PointF punto = ObtenerPosicion(paradas[i]);
+            PointF centro = ObtenerPosicion(i);
 
-            float dx = posicion.X - punto.X;
-            float dy = posicion.Y - punto.Y;
+            float dx = punto.X - centro.X;
+            float dy = punto.Y - centro.Y;
 
-            float distanciaCuadrada = dx * dx + dy * dy;
+            float radio = Math.Max(12f, 7f * zoom);
 
-            if (distanciaCuadrada <= 22 * 22)
+            if (dx * dx + dy * dy <= radio * radio)
                 return i;
         }
 
         return -1;
     }
 
-    private void LienzoRed_MouseMove(
-        object? sender,
-        MouseEventArgs e)
+    protected override void OnMouseWheel(MouseEventArgs e)
     {
-        int nodoActual = BuscarNodo(e.Location);
+        base.OnMouseWheel(e);
 
-        if (nodoHover != nodoActual)
+        float anterior = zoom;
+
+        zoom = Math.Clamp(
+            zoom * (e.Delta > 0 ? 1.15f : 0.87f),
+            0.75f, 4f
+        );
+
+        // Conserva el punto bajo el cursor al acercar
+        float cx = Width / 2f;
+        float cy = Height / 2f;
+
+        desplazamiento = new PointF(
+            e.X - cx -
+                (e.X - cx - desplazamiento.X)
+                * zoom / anterior,
+            e.Y - cy -
+                (e.Y - cy - desplazamiento.Y)
+                * zoom / anterior
+        );
+
+        Invalidate();
+    }
+
+    protected override void OnMouseDown(MouseEventArgs e)
+    {
+        base.OnMouseDown(e);
+
+        Focus();
+
+        if (e.Button == MouseButtons.Right ||
+            e.Button == MouseButtons.Middle)
         {
-            nodoHover = nodoActual;
+            arrastrando = true;
+            ultimoMouse = e.Location;
+            Cursor = Cursors.SizeAll;
+        }
+    }
 
-            Cursor = nodoHover >= 0
+    protected override void OnMouseUp(MouseEventArgs e)
+    {
+        base.OnMouseUp(e);
+
+        if (arrastrando)
+        {
+            arrastrando = false;
+            Cursor = Cursors.Default;
+        }
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        base.OnMouseMove(e);
+
+        if (arrastrando)
+        {
+            desplazamiento = new PointF(
+                desplazamiento.X + e.X - ultimoMouse.X,
+                desplazamiento.Y + e.Y - ultimoMouse.Y
+            );
+
+            ultimoMouse = e.Location;
+            Invalidate();
+            return;
+        }
+
+        int actual = BuscarNodo(e.Location);
+
+        if (actual != nodoHover)
+        {
+            nodoHover = actual;
+            Cursor = actual >= 0
                 ? Cursors.Hand
                 : Cursors.Default;
 
@@ -317,155 +295,329 @@ public class LienzoRed : Control
         }
     }
 
-    private void LienzoRed_MouseLeave(
-        object? sender,
-        EventArgs e)
+    protected override void OnMouseLeave(EventArgs e)
     {
-        nodoHover = -1;
-        Cursor = Cursors.Default;
+        base.OnMouseLeave(e);
 
-        Invalidate();
-    }
-
-    private void LienzoRed_MouseClick(
-        object? sender,
-        MouseEventArgs e)
-    {
-        if (e.Button != MouseButtons.Left)
-            return;
-
-        nodoSeleccionado = BuscarNodo(e.Location);
-
-        Invalidate();
-    }
-
-    // Dibuja las conexiones antes de dibujar las paradas.
-    private void DibujarConexiones(Graphics g)
-    {
-        foreach (ConexionVisual conexion in conexiones)
+        if (!arrastrando)
         {
-            PointF origen =
-                ObtenerPosicion(paradas[conexion.Origen]);
-
-            PointF destino =
-                ObtenerPosicion(paradas[conexion.Destino]);
-
-            Color color = conexion.Bidireccional
-                ? conexionNormal
-                : conexionDirigida;
-
-            using Pen linea = new Pen(color, 2.6f)
-            {
-                StartCap = LineCap.Round,
-                EndCap = LineCap.Round
-            };
-
-            g.DrawLine(linea, origen, destino);
-
-            if (!conexion.Bidireccional)
-                DibujarFlecha(g, origen, destino, color);
+            nodoHover = -1;
+            Cursor = Cursors.Default;
+            Invalidate();
         }
     }
 
-    // Dibuja la dirección de una conexión.
-    private void DibujarFlecha(
-        Graphics g,
+    protected override void OnMouseClick(MouseEventArgs e)
+    {
+        base.OnMouseClick(e);
+
+        if (e.Button == MouseButtons.Left)
+        {
+            nodoSeleccionado = BuscarNodo(e.Location);
+            Invalidate();
+        }
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+
+        if (e.KeyCode == Keys.D0 ||
+            e.KeyCode == Keys.NumPad0)
+        {
+            zoom = 1f;
+            desplazamiento = PointF.Empty;
+            Invalidate();
+        }
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        base.OnPaint(e);
+
+        Graphics g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+
+        g.Clear(fondo);
+
+        DibujarFondo(g);
+
+        if (Width < 320 || Height < 240)
+            return;
+
+        if (paradas.Length == 0)
+        {
+            DibujarCentrado(
+                g, "Sin paradas registradas");
+            return;
+        }
+
+        DibujarConexiones(g);
+        DibujarNodos(g);
+        DibujarRutaSeleccionada(g);
+        DibujarEtiquetas(g);
+        DibujarEncabezado(g);
+        DibujarAyuda(g);
+        DibujarTarjetaSeleccion(g);
+    }
+
+    // Fondo discreto de puntos
+    private void DibujarFondo(Graphics g)
+    {
+        using var pincel = new SolidBrush(
+            Color.FromArgb(211, 225, 211)
+        );
+
+        const int paso = 28;
+
+        for (int x = 12; x < Width; x += paso)
+        {
+            for (int y = 12; y < Height; y += paso)
+            {
+                g.FillEllipse(
+                    pincel, x, y, 1.5f, 1.5f);
+            }
+        }
+    }
+
+    // Curvas visuales sobre las conexiones reales
+    private GraphicsPath CrearCurva(
         PointF origen,
         PointF destino,
-        Color color)
+        int indice)
     {
         float dx = destino.X - origen.X;
         float dy = destino.Y - origen.Y;
 
         float longitud = MathF.Sqrt(dx * dx + dy * dy);
 
-        if (longitud < 1)
-            return;
+        var camino = new GraphicsPath();
 
-        float ux = dx / longitud;
-        float uy = dy / longitud;
+        if (longitud < 2f)
+            return camino;
 
-        float x = origen.X + dx * 0.65f;
-        float y = origen.Y + dy * 0.65f;
+        // Curvatura suave y estable entre extremos
+        float curvatura =
+            Math.Min(18f, longitud * 0.08f);
 
-        const float largo = 12;
-        const float mitadAncho = 5;
+        float lado = indice % 2 == 0 ? 1f : -1f;
 
-        PointF punta = new PointF(x, y);
+        float perpendicularX = -dy / longitud;
+        float perpendicularY = dx / longitud;
 
-        PointF izquierda = new PointF(
-            x - ux * largo - uy * mitadAncho,
-            y - uy * largo + ux * mitadAncho
+        PointF control = new PointF(
+            (origen.X + destino.X) / 2f +
+                perpendicularX * curvatura * lado,
+            (origen.Y + destino.Y) / 2f +
+                perpendicularY * curvatura * lado
         );
 
-        PointF derecha = new PointF(
-            x - ux * largo + uy * mitadAncho,
-            y - uy * largo - ux * mitadAncho
+        camino.AddBezier(
+            origen,
+            control,
+            control,
+            destino
         );
 
-        using Brush relleno = new SolidBrush(color);
-
-        g.FillPolygon(
-            relleno,
-            new[] { punta, izquierda, derecha }
-        );
+        return camino;
     }
 
-    // Dibuja cada parada y su nombre.
-    private void DibujarParadas(Graphics g)
+    private void DibujarConexiones(Graphics g)
     {
-        using Font fuenteCodigo = new Font(
-            "Segoe UI", 10, FontStyle.Bold);
-
-        using Font fuenteNombre = new Font(
-            "Segoe UI", 9, FontStyle.Regular);
-
-        using Brush fondoNormal =
-            new SolidBrush(Color.White);
-
-        using Brush fondoSeleccionado =
-            new SolidBrush(TransRedTheme.Acento);
-
-        using Brush textoNormal =
-            new SolidBrush(TransRedTheme.Tinta);
-
-        using Brush textoBlanco =
-            new SolidBrush(Color.White);
-
-        using Brush textoSecundario =
-            new SolidBrush(TransRedTheme.TextoSecundario);
-
-        using StringFormat centrado = new StringFormat
+        // Primero las conexiones de contexto
+        for (int i = 0; i < conexiones.Length; i++)
         {
-            Alignment = StringAlignment.Center,
-            LineAlignment = StringAlignment.Center
-        };
+            ConexionVisual conexion = conexiones[i];
 
-        for (int i = 0; i < paradas.Length; i++)
-        {
-            ParadaVisual parada = paradas[i];
-            PointF punto = ObtenerPosicion(parada);
+            bool destacada =
+                nodoSeleccionado >= 0 &&
+                (conexion.Origen == nodoSeleccionado ||
+                 conexion.Destino == nodoSeleccionado);
 
-            bool seleccionada = i == nodoSeleccionado;
-            bool encima = i == nodoHover;
+            PointF origen =
+                ObtenerPosicion(conexion.Origen);
 
-            float radio = seleccionada ? 23 : encima ? 21 : 19;
+            PointF destino =
+                ObtenerPosicion(conexion.Destino);
 
-            Color colorBorde = seleccionada || encima
-                ? TransRedTheme.Acento
-                : Color.FromArgb(104, 153, 139);
+            if (Math.Abs(origen.X - destino.X) < 1f &&
+                Math.Abs(origen.Y - destino.Y) < 1f)
+                continue;
 
-            using Pen borde = new Pen(
-                colorBorde,
-                seleccionada ? 3.5f : 2.5f
+            Color baseColor = conexion.Bidireccional
+                ? conexionSuave
+                : colorDirigido;
+
+            Color color = destacada
+                ? baseColor
+                : Color.FromArgb(
+                    nodoSeleccionado < 0 ? 105 : 48,
+                    baseColor
+                );
+
+            using var lapiz = new Pen(
+                color,
+                destacada ? 3.5f : 1.35f
             );
 
-            Brush fondoNodo = seleccionada
-                ? fondoSeleccionado
-                : fondoNormal;
+            lapiz.StartCap = LineCap.Round;
+            lapiz.EndCap = LineCap.Round;
+
+            using GraphicsPath curva =
+                CrearCurva(origen, destino, i);
+
+            if (curva.PointCount > 0)
+                g.DrawPath(lapiz, curva);
+        }
+    }
+
+    
+    private void DibujarRutaSeleccionada(Graphics g)
+    {
+        if (rutaVisible.Length < 2)
+            return;
+
+        using var halo = new Pen(
+            Color.FromArgb(65, 190, 126, 70),
+            9f);
+
+        using var linea = new Pen(
+            TransRedTheme.Cobre,
+            4f);
+
+        halo.StartCap = LineCap.Round;
+        halo.EndCap = LineCap.Round;
+
+        linea.StartCap = LineCap.Round;
+        linea.EndCap = LineCap.Round;
+
+        for (int i = 0; i < rutaVisible.Length - 1; i++)
+        {
+            int indiceOrigen = BuscarIndice(rutaVisible[i]);
+            int indiceDestino = BuscarIndice(rutaVisible[i + 1]);
+
+            if (indiceOrigen < 0 || indiceDestino < 0)
+                continue;
+
+            PointF origen = ObtenerPosicion(indiceOrigen);
+            PointF destino = ObtenerPosicion(indiceDestino);
+
+            // Busca la conexión real entre ambos nodos
+            int indiceConexion = -1;
+
+            for (int j = 0; j < conexiones.Length; j++)
+            {
+                ConexionVisual conexion = conexiones[j];
+
+                if ((conexion.Origen == indiceOrigen &&
+                    conexion.Destino == indiceDestino) ||
+                    (conexion.Bidireccional &&
+                    conexion.Origen == indiceDestino &&
+                    conexion.Destino == indiceOrigen))
+                {
+                    indiceConexion = j;
+                    break;
+                }
+            }
+
+            if (indiceConexion < 0)
+                continue;
+
+            // Dibuja la misma curva que la conexión
+            PointF inicio = ObtenerPosicion(
+                conexiones[indiceConexion].Origen);
+
+            PointF fin = ObtenerPosicion(
+                conexiones[indiceConexion].Destino);
+
+            using GraphicsPath curva = CrearCurva(
+                inicio,
+                fin,
+                indiceConexion);
+
+            if (curva.PointCount > 0)
+            {
+                g.DrawPath(halo, curva);
+                g.DrawPath(linea, curva);
+            }
+        }
+
+        // Destaca las paradas incluidas en el recorrido
+        foreach (string codigo in rutaVisible)
+        {
+            int indice = BuscarIndice(codigo);
+
+            if (indice < 0)
+                continue;
+
+            PointF punto = ObtenerPosicion(indice);
+
+            using var relleno = new SolidBrush(Color.White);
+            using var borde = new Pen(
+                TransRedTheme.Cobre, 3f);
 
             g.FillEllipse(
-                fondoNodo,
+                relleno,
+                punto.X - 8, punto.Y - 8,
+                16, 16);
+
+            g.DrawEllipse(
+                borde,
+                punto.X - 8, punto.Y - 8,
+                16, 16);
+        }
+    }
+
+
+    // Nodos más pequeños para evitar saturación
+    private void DibujarNodos(Graphics g)
+    {
+        for (int i = 0; i < paradas.Length; i++)
+        {
+            PointF punto = ObtenerPosicion(i);
+
+            if (punto.X < -25 || punto.X > Width + 25 ||
+                punto.Y < -25 || punto.Y > Height + 25)
+                continue;
+
+            bool elegido = i == nodoSeleccionado;
+            bool hover = i == nodoHover;
+
+            float radio = elegido
+                ? 12f
+                : hover ? 10f : 6.5f;
+
+            if (zoom > 1.8f && !elegido && !hover)
+                radio = 8f;
+
+            if (elegido || hover)
+            {
+                using var halo = new SolidBrush(
+                    Color.FromArgb(48, 43, 112, 91)
+                );
+
+                g.FillEllipse(
+                    halo,
+                    punto.X - radio - 7,
+                    punto.Y - radio - 7,
+                    (radio + 7) * 2,
+                    (radio + 7) * 2
+                );
+            }
+
+            using var relleno = new SolidBrush(
+                elegido
+                    ? TransRedTheme.Bosque
+                    : Color.White
+            );
+
+            using var borde = new Pen(
+                TransRedTheme.Acento,
+                elegido ? 2.8f : 1.8f
+            );
+
+            g.FillEllipse(
+                relleno,
                 punto.X - radio,
                 punto.Y - radio,
                 radio * 2,
@@ -479,166 +631,242 @@ public class LienzoRed : Control
                 radio * 2,
                 radio * 2
             );
-
-            RectangleF areaCodigo = new RectangleF(
-                punto.X - radio,
-                punto.Y - radio,
-                radio * 2,
-                radio * 2
-            );
-
-            g.DrawString(
-                parada.Codigo,
-                fuenteCodigo,
-                seleccionada ? textoBlanco : textoNormal,
-                areaCodigo,
-                centrado
-            );
-
-            RectangleF areaNombre = new RectangleF(
-                punto.X - 65,
-                punto.Y + 27,
-                130,
-                25
-            );
-
-            g.DrawString(
-                parada.Nombre,
-                fuenteNombre,
-                textoSecundario,
-                areaNombre,
-                centrado
-            );
         }
     }
 
-    // Encabezado informativo del lienzo.
-    private void DibujarInformacion(Graphics g)
+    // Etiquetas selectivas para evitar superposiciones
+    private void DibujarEtiquetas(Graphics g)
+    {
+        using Font fuente = new Font(
+            "Segoe UI", 8.5f, FontStyle.Regular);
+
+        var ocupados = new List<Rectangle>();
+
+        int frecuencia = zoom > 2.2f
+            ? 1
+            : zoom > 1.5f
+                ? 2
+                : Math.Max(4, paradas.Length / 7);
+
+        // Primera pasada: etiquetas generales
+        for (int i = 0; i < paradas.Length; i++)
+        {
+            if (i != nodoHover &&
+                i != nodoSeleccionado &&
+                i % frecuencia != 0)
+                continue;
+
+            if (i == nodoHover || i == nodoSeleccionado)
+                continue;
+
+            DibujarEtiqueta(
+                g, fuente, i, ocupados, false);
+        }
+
+        // Las etiquetas de interacción van encima
+        if (nodoHover >= 0)
+            DibujarEtiqueta(
+                g, fuente, nodoHover,
+                ocupados, true);
+
+        if (nodoSeleccionado >= 0 &&
+            nodoSeleccionado != nodoHover)
+            DibujarEtiqueta(
+                g, fuente, nodoSeleccionado,
+                ocupados, true);
+    }
+
+    private void DibujarEtiqueta(
+        Graphics g,
+        Font fuente,
+        int indice,
+        List<Rectangle> ocupados,
+        bool prioritaria)
+    {
+        PointF punto = ObtenerPosicion(indice);
+
+        string nombre = paradas[indice].Nombre;
+
+        // Evita repetir "Parque Central" en todo el mapa
+        string corto = nombre.Replace(
+            "Parque Central - ", "");
+
+        if (corto.Length > 24)
+            corto = corto.Substring(0, 21) + "...";
+
+        string texto = prioritaria
+            ? $"{paradas[indice].Codigo} · {corto}"
+            : corto;
+
+        Size tamano = TextRenderer.MeasureText(
+            texto, fuente);
+
+        Rectangle area = new Rectangle(
+            (int)(punto.X - tamano.Width / 2f),
+            (int)(punto.Y + 12),
+            tamano.Width + 7,
+            tamano.Height + 3
+        );
+
+        if (area.Left < 4 ||
+            area.Right > Width - 4 ||
+            area.Top < 4 ||
+            area.Bottom > Height - 4)
+            return;
+
+        if (!prioritaria)
+        {
+            foreach (Rectangle otra in ocupados)
+            {
+                if (otra.IntersectsWith(area))
+                    return;
+            }
+        }
+
+        using var fondoEtiqueta = new SolidBrush(
+            Color.FromArgb(246, 249, 244)
+        );
+
+        g.FillRectangle(fondoEtiqueta, area);
+
+        TextRenderer.DrawText(
+            g,
+            texto,
+            fuente,
+            area,
+            TransRedTheme.TextoSecundario,
+            TextFormatFlags.HorizontalCenter |
+            TextFormatFlags.VerticalCenter |
+            TextFormatFlags.SingleLine
+        );
+
+        ocupados.Add(area);
+    }
+
+    private void DibujarEncabezado(Graphics g)
     {
         using Font fuente = new Font(
             "Segoe UI", 8, FontStyle.Bold);
 
-        using Brush tinta = new SolidBrush(
-            TransRedTheme.TextoSecundario);
-
-        g.DrawString(
-            $"RED DE TRANSPORTE  /  {paradas.Length} PARADAS · {conexiones.Length} CONEXIONES",
+        TextRenderer.DrawText(
+            g,
+            $"RED REGIONAL  ·  {paradas.Length} PARADAS",
             fuente,
-            tinta,
-            new PointF(16, 16)
+            new Rectangle(16, 12, Width - 30, 25),
+            TransRedTheme.Bosque
         );
     }
 
-    // Explica el significado de las líneas.
-    private void DibujarLeyenda(Graphics g)
+    private void DibujarAyuda(Graphics g)
     {
-        float y = Height - 29;
-
-        using Pen normal = new Pen(conexionNormal, 3);
-        using Pen dirigida = new Pen(conexionDirigida, 3);
-
         using Font fuente = new Font(
-            "Segoe UI", 8, FontStyle.Regular);
+            "Segoe UI", 8);
 
-        using Brush texto = new SolidBrush(
-            TransRedTheme.TextoSecundario);
-
-        g.DrawLine(normal, 16, y + 7, 43, y + 7);
-        g.DrawString("Ambos sentidos", fuente, texto, 50, y);
-
-        g.DrawLine(dirigida, 165, y + 7, 192, y + 7);
-        g.DrawString("Un sentido", fuente, texto, 199, y);
+        TextRenderer.DrawText(
+            g,
+            "Rueda: zoom  ·  Clic derecho: mover  ·  0: restablecer",
+            fuente,
+            new Rectangle(
+                15,
+                Math.Max(0, Height - 28),
+                Math.Max(0, Width - 30),
+                22
+            ),
+            TransRedTheme.TextoSecundario
+        );
     }
 
-    // Muestra la información de la parada seleccionada.
-    private void DibujarInformacionNodo(Graphics g)
+    private void DibujarTarjetaSeleccion(Graphics g)
     {
-        if (nodoSeleccionado < 0 ||
-            nodoSeleccionado >= paradas.Length)
+        if (nodoSeleccionado < 0)
             return;
 
         ParadaVisual parada = paradas[nodoSeleccionado];
 
-        int cantidadConexiones = 0;
+        int cantidad = 0;
 
         foreach (ConexionVisual conexion in conexiones)
         {
             if (conexion.Origen == nodoSeleccionado ||
                 conexion.Destino == nodoSeleccionado)
-            {
-                cantidadConexiones++;
-            }
+                cantidad++;
         }
 
-        int ancho = Math.Min(250, Width - 32);
-        int alto = 112;
+        int ancho = Math.Min(280, Width - 32);
 
-        int x = Width - ancho - 16;
-        int y = 44;
+        Rectangle area = new Rectangle(
+            Width - ancho - 14,
+            42,
+            ancho,
+            112
+        );
 
-        Rectangle tarjeta = new Rectangle(x, y, ancho, alto);
-
-        using Brush fondoTarjeta =
+        using var fondoTarjeta =
             new SolidBrush(Color.White);
 
-        using Pen borde =
-            new Pen(Color.FromArgb(213, 228, 219));
+        using var borde =
+            new Pen(TransRedTheme.Borde);
 
-        g.FillRectangle(fondoTarjeta, tarjeta);
-        g.DrawRectangle(borde, tarjeta);
+        g.FillRectangle(fondoTarjeta, area);
+        g.DrawRectangle(borde, area);
 
-        using Font fuenteEtiqueta =
-            new Font("Segoe UI", 8, FontStyle.Bold);
+        using Font etiqueta = new Font(
+            "Segoe UI", 8, FontStyle.Bold);
 
-        using Font fuenteTitulo =
-            new Font("Segoe UI", 12, FontStyle.Bold);
+        using Font titulo = new Font(
+            "Segoe UI", 11, FontStyle.Bold);
 
-        using Font fuenteDetalle =
-            new Font("Segoe UI", 9);
+        using Font detalle = new Font(
+            "Segoe UI", 9);
 
-        using Brush verde =
-            new SolidBrush(TransRedTheme.Acento);
-
-        using Brush tinta =
-            new SolidBrush(TransRedTheme.Tinta);
-
-        using Brush secundario =
-            new SolidBrush(TransRedTheme.TextoSecundario);
-
-        g.DrawString(
+        TextRenderer.DrawText(
+            g,
             "PARADA SELECCIONADA",
-            fuenteEtiqueta,
-            verde,
-            x + 14,
-            y + 12
+            etiqueta,
+            new Rectangle(
+                area.X + 13, area.Y + 10,
+                area.Width - 24, 22),
+            TransRedTheme.Acento
         );
 
-        g.DrawString(
+        TextRenderer.DrawText(
+            g,
             $"{parada.Codigo} · {parada.Nombre}",
-            fuenteTitulo,
-            tinta,
-            x + 14,
-            y + 36
+            titulo,
+            new Rectangle(
+                area.X + 13, area.Y + 35,
+                area.Width - 24, 34),
+            TransRedTheme.Tinta,
+            TextFormatFlags.EndEllipsis |
+            TextFormatFlags.WordBreak
         );
 
-        g.DrawString(
-            $"Conexiones asociadas: {cantidadConexiones}",
-            fuenteDetalle,
-            secundario,
-            x + 14,
-            y + 70
-        );
-
-        g.DrawString(
-            "Información de la red",
-            fuenteDetalle,
-            secundario,
-            x + 14,
-            y + 89
+        TextRenderer.DrawText(
+            g,
+            $"Conexiones asociadas: {cantidad}",
+            detalle,
+            new Rectangle(
+                area.X + 13, area.Y + 79,
+                area.Width - 24, 22),
+            TransRedTheme.TextoSecundario
         );
     }
 
-    // Modelo visual de una parada.
+    private void DibujarCentrado(
+        Graphics g, string texto)
+    {
+        TextRenderer.DrawText(
+            g,
+            texto,
+            Font,
+            ClientRectangle,
+            TransRedTheme.TextoSecundario,
+            TextFormatFlags.HorizontalCenter |
+            TextFormatFlags.VerticalCenter
+        );
+    }
+
+    // Modelos utilizados exclusivamente para dibujar
     private readonly record struct ParadaVisual(
         string Codigo,
         string Nombre,
@@ -646,10 +874,19 @@ public class LienzoRed : Control
         float Y
     );
 
-    // Modelo visual de una conexión.
     private readonly record struct ConexionVisual(
         int Origen,
         int Destino,
         bool Bidireccional
     );
+
+    
+    public void MostrarRuta(string[] codigos)
+    {
+        rutaVisible = codigos ?? Array.Empty<string>();
+
+        // Actualiza el mapa después de recibir el recorrido
+        Invalidate();
+    }
+
 }

@@ -1,26 +1,19 @@
+
 using System;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Windows.Forms;
-using TransRed.Interfaz.Design;
-using TransRed.Interfaz.Components;
 using TransRed.Core.Servicios;
+using TransRed.Interfaz.Components;
+using TransRed.Interfaz.Design;
 using TransRed.Interfaz.Views;
+
 namespace TransRed.Interfaz.Layout;
 
 public static class MainShell
 {
-    private static readonly Color FondoRed =
-        Color.FromArgb(241, 246, 242);
-
-    private static readonly Color FondoCampo =
-        Color.FromArgb(247, 249, 247);
-
-    private static readonly Color TextoTenue =
-        Color.FromArgb(124, 143, 135);
-
-    
-    public static void Construir(Form ventana, IGestorTransporte gestor)
+    public static void Construir(
+        Form ventana,
+        IGestorTransporte gestor)
     {
         ventana.SuspendLayout();
         ventana.Controls.Clear();
@@ -29,9 +22,8 @@ public static class MainShell
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 3,
+            RowCount = 2,
             Margin = Padding.Empty,
-            Padding = Padding.Empty,
             BackColor = TransRedTheme.Fondo
         };
 
@@ -39,15 +31,29 @@ public static class MainShell
             new ColumnStyle(SizeType.Percent, 100));
 
         principal.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 82));
+            new RowStyle(SizeType.Absolute, 96));
 
         principal.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
-        principal.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 58));
+        var cuerpo = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            Margin = Padding.Empty,
+            BackColor = TransRedTheme.Fondo
+        };
 
-        // Espacio donde se muestran las diferentes vistas
+        cuerpo.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Absolute, 218));
+
+        cuerpo.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Percent, 100));
+
+        cuerpo.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
+
         var areaContenido = new Panel
         {
             Dock = DockStyle.Fill,
@@ -55,20 +61,36 @@ public static class MainShell
             BackColor = TransRedTheme.Fondo
         };
 
-        // Cambia la vista sin abrir otra ventana
+        NavigationBar? navegacion = null;
+
+        // Conserva las cinco vistas funcionales
         void MostrarSeccion(string seccion)
         {
             Control nuevaVista = seccion switch
             {
-                "Explorar red" => CrearContenido(gestor),
+                "Explorar red" => new ExploradorPrincipal(gestor),
+
                 "Paradas" => new VistaParadas(gestor),
+
                 "Conexiones" => new VistaConexiones(gestor),
+
                 "Planificar" => new VistaPlanificar(gestor),
+
                 "Algoritmos" => new VistaAlgoritmos(gestor),
-                _ => CrearVistaSeccion(seccion)
+
+                _ => new Label
+                {
+                    Text = "Sección no disponible",
+                    TextAlign = ContentAlignment.MiddleCenter
+                }
             };
 
-            Control? anterior = areaContenido.Controls.Count > 0
+            nuevaVista.Dock = DockStyle.Fill;
+
+            areaContenido.SuspendLayout();
+
+            Control? anterior =
+                areaContenido.Controls.Count > 0
                 ? areaContenido.Controls[0]
                 : null;
 
@@ -80,93 +102,128 @@ public static class MainShell
                 areaContenido.Controls.Remove(anterior);
                 anterior.Dispose();
             }
+
+            areaContenido.ResumeLayout(true);
+
+            navegacion?.Seleccionar(seccion);
         }
 
-        var navegacion = new NavigationBar(MostrarSeccion);
+        navegacion = new NavigationBar(MostrarSeccion);
+
+        cuerpo.Controls.Add(navegacion, 0, 0);
+        cuerpo.Controls.Add(areaContenido, 1, 0);
 
         principal.Controls.Add(CrearEncabezado(), 0, 0);
-        principal.Controls.Add(areaContenido, 0, 1);
-        principal.Controls.Add(navegacion, 0, 2);
+        principal.Controls.Add(cuerpo, 0, 1);
 
         ventana.Controls.Add(principal);
 
-        // Pantalla inicial
         MostrarSeccion("Explorar red");
 
         ventana.ResumeLayout(true);
     }
 
-
-    // Encabezado fijo y sin elementos superpuestos
     private static Control CrearEncabezado()
     {
-        var encabezado = new Panel
+        var fondo = new GradientSurface(
+            Color.FromArgb(255, 252, 247),
+            Color.FromArgb(231, 241, 231),
+            0)
         {
             Dock = DockStyle.Fill,
+            Padding = new Padding(24, 16, 26, 16)
+        };
+
+        var tabla = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 3,
+            RowCount = 1,
             Margin = Padding.Empty,
-            BackColor = TransRedTheme.Superficie
+            BackColor = Color.Transparent
         };
 
-        var simbolo = new SimboloTransRed
-        {
-            Location = new Point(22, 17),
-            Size = new Size(46, 46)
-        };
+        tabla.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Absolute, 62));
 
-        var nombre = new Label
+        tabla.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Percent, 100));
+
+        tabla.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Absolute, 260));
+
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
+
+        var icono = new Label
         {
-            Text = "transred",
-            Location = new Point(84, 14),
-            Size = new Size(240, 34),
+            Text = "●━●",
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 4, 10, 4),
+            BackColor = TransRedTheme.Bosque,
+            ForeColor = Color.White,
             Font = new Font(
-                "Segoe UI", 18, FontStyle.Bold),
-            ForeColor = TransRedTheme.Tinta,
-            TextAlign = ContentAlignment.MiddleLeft,
-            AutoSize = false
+                "Segoe UI Symbol", 11, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleCenter
         };
 
-        var subtitulo = new Label
+        var marca = new TableLayoutPanel
         {
-            Text = "MOVILIDAD URBANA",
-            Location = new Point(86, 49),
-            Size = new Size(240, 18),
-            Font = new Font(
-                "Segoe UI", 8, FontStyle.Regular),
-            ForeColor = TextoTenue,
-            TextAlign = ContentAlignment.MiddleLeft,
-            AutoSize = false
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = Padding.Empty,
+            BackColor = Color.Transparent
         };
 
-        var contexto = new Label
-        {
-            Text = "EXPLORADOR DE RED",
-            Dock = DockStyle.Right,
-            Width = 205,
-            Padding = new Padding(0, 0, 24, 0),
-            ForeColor = TransRedTheme.TextoSecundario,
-            Font = new Font(
-                "Segoe UI", 8.5f, FontStyle.Regular),
-            TextAlign = ContentAlignment.MiddleRight
-        };
+        marca.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Percent, 100));
 
-        var separador = new Panel
-        {
-            Dock = DockStyle.Bottom,
-            Height = 1,
-            BackColor = TransRedTheme.Borde
-        };
+        marca.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 60));
 
-        encabezado.Controls.Add(simbolo);
-        encabezado.Controls.Add(nombre);
-        encabezado.Controls.Add(subtitulo);
-        encabezado.Controls.Add(contexto);
-        encabezado.Controls.Add(separador);
+        marca.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 40));
 
-        return encabezado;
+        var nombre = Texto(
+            "TransRed",
+            21,
+            FontStyle.Bold,
+            TransRedTheme.Tinta
+        );
+
+        var subtitulo = Texto(
+            "Movilidad urbana  ·  Mobility Studio",
+            9,
+            FontStyle.Regular,
+            TransRedTheme.TextoSecundario
+        );
+
+        marca.Controls.Add(nombre, 0, 0);
+        marca.Controls.Add(subtitulo, 0, 1);
+
+        var ubicacion = Texto(
+            "RED DEL SUROCCIDENTE\nGUATEMALA",
+            8.5f,
+            FontStyle.Bold,
+            TransRedTheme.TextoSecundario
+        );
+
+        ubicacion.TextAlign =
+            ContentAlignment.MiddleRight;
+
+        tabla.Controls.Add(icono, 0, 0);
+        tabla.Controls.Add(marca, 1, 0);
+        tabla.Controls.Add(ubicacion, 2, 0);
+
+        fondo.Controls.Add(tabla);
+
+        return fondo;
     }
 
-    // Distribución de panel izquierdo y lienzo central
-    private static Control CrearContenido(IGestorTransporte gestor)
+    private static Control CrearExplorador(
+        IGestorTransporte gestor,
+        Action abrirPlanificador)
     {
         var contenido = new TableLayoutPanel
         {
@@ -174,12 +231,12 @@ public static class MainShell
             ColumnCount = 2,
             RowCount = 1,
             Margin = Padding.Empty,
-            Padding = new Padding(18, 18, 18, 18),
+            Padding = new Padding(16, 18, 18, 18),
             BackColor = TransRedTheme.Fondo
         };
 
         contenido.ColumnStyles.Add(
-            new ColumnStyle(SizeType.Absolute, 310));
+            new ColumnStyle(SizeType.Absolute, 338));
 
         contenido.ColumnStyles.Add(
             new ColumnStyle(SizeType.Percent, 100));
@@ -187,577 +244,295 @@ public static class MainShell
         contenido.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
-        contenido.Controls.Add(CrearPlanificador(), 0, 0);
-        contenido.Controls.Add(CrearLienzo(gestor), 1, 0);
+        contenido.Controls.Add(
+            CrearPanelInicio(gestor, abrirPlanificador),
+            0, 0);
+
+        contenido.Controls.Add(
+            CrearPanelMapa(gestor),
+            1, 0);
 
         return contenido;
     }
 
-    // Panel lateral con espacio para futuros controles
-    private static Control CrearPlanificador()
+    private static Control CrearPanelInicio(
+        IGestorTransporte gestor,
+        Action abrirPlanificador)
     {
-        var lateral = new TableLayoutPanel
+        var tarjeta = new GradientSurface(
+            Color.White,
+            Color.FromArgb(250, 249, 244),
+            22)
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 0, 14, 0),
+            Padding = new Padding(22, 24, 22, 20)
+        };
+
+        var tabla = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 7,
-            Margin = new Padding(0, 0, 16, 0),
-            Padding = new Padding(20, 22, 20, 18),
-            BackColor = TransRedTheme.Superficie
+            RowCount = 8,
+            Margin = Padding.Empty,
+            BackColor = Color.Transparent
         };
 
-        lateral.ColumnStyles.Add(
+        tabla.ColumnStyles.Add(
             new ColumnStyle(SizeType.Percent, 100));
 
-        lateral.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 24));
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 32));
 
-        lateral.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 43));
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 52));
 
-        lateral.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 44));
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 88));
 
-        lateral.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 86));
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 30));
 
-        lateral.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 86));
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 112));
 
-        lateral.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 55));
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 62));
 
-        lateral.RowStyles.Add(
+        tabla.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
-        lateral.Controls.Add(
-            CrearTexto(
-                "01 / PLANIFICADOR",
-                8,
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 95));
+
+        tabla.Controls.Add(
+            Texto(
+                "PLANIFICACIÓN DE VIAJE",
+                8.5f,
                 FontStyle.Bold,
-                TransRedTheme.Acento),
+                TransRedTheme.Cobre),
             0, 0);
 
-        lateral.Controls.Add(
-            CrearTexto(
-                "Nuevo recorrido",
-                15,
+        tabla.Controls.Add(
+            Texto(
+                "Explora la red",
+                19,
                 FontStyle.Bold,
                 TransRedTheme.Tinta),
             0, 1);
 
-        lateral.Controls.Add(
-            CrearTexto(
-                "Consulta rutas entre paradas",
-                9,
-                FontStyle.Regular,
-                TransRedTheme.TextoSecundario),
-            0, 2);
+        var descripcion = Texto(
+            "Descubre las paradas, consulta sus conexiones y encuentra el mejor camino para tu próximo recorrido.",
+            10,
+            FontStyle.Regular,
+            TransRedTheme.TextoSecundario
+        );
 
-        lateral.Controls.Add(
-            CrearCampoVisual(
-                "ORIGEN", "Seleccionar origen"),
+        descripcion.TextAlign =
+            ContentAlignment.TopLeft;
+
+        tabla.Controls.Add(descripcion, 0, 2);
+
+        tabla.Controls.Add(
+            Texto(
+                "TU RED EN MOVIMIENTO",
+                8,
+                FontStyle.Bold,
+                TransRedTheme.TextoTenue),
             0, 3);
 
-        lateral.Controls.Add(
-            CrearCampoVisual(
-                "DESTINO", "Seleccionar destino"),
-            0, 4);
+        int totalParadas =
+            gestor.ObtenerTodasParadas().Length;
 
-        var aviso = new Label
+        int totalConexiones =
+            gestor.ObtenerTodasConexiones().Length;
+
+        var estadisticas = new GradientSurface(
+            Color.FromArgb(235, 244, 232),
+            Color.FromArgb(249, 245, 235),
+            15)
         {
-            Text = "Cálculo de rutas próximamente",
             Dock = DockStyle.Fill,
-            Margin = new Padding(0, 8, 0, 7),
-            BackColor = TransRedTheme.AcentoSuave,
-            ForeColor = TransRedTheme.Acento,
-            Font = new Font(
-                "Segoe UI", 8.5f),
-            TextAlign = ContentAlignment.MiddleCenter,
-            AutoEllipsis = true
+            Margin = new Padding(0, 4, 0, 12),
+            Padding = new Padding(16, 12, 16, 12)
         };
 
-        lateral.Controls.Add(aviso, 0, 5);
+        var estadisticasTexto = new Label
+        {
+            Text =
+                $"{totalParadas} paradas registradas\n" +
+                $"{totalConexiones} conexiones en la red",
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent,
+            ForeColor = TransRedTheme.Bosque,
+            Font = new Font(
+                "Segoe UI", 11, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft
+        };
 
-        var areaEstado = new Panel
+        estadisticas.Controls.Add(estadisticasTexto);
+        tabla.Controls.Add(estadisticas, 0, 4);
+
+        var boton = new Button
+        {
+            Text = "Planificar recorrido   →",
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 2, 0, 12)
+        };
+
+        UiStyles.AplicarBotonPrincipal(boton);
+
+        boton.Click += (_, _) =>
+            abrirPlanificador();
+
+        tabla.Controls.Add(boton, 0, 5);
+
+        var instruccion = Texto(
+            "Selecciona una parada en el mapa para consultar sus conexiones. También puedes explorar las demás secciones desde la navegación.",
+            9,
+            FontStyle.Regular,
+            TransRedTheme.TextoSecundario
+        );
+
+        instruccion.TextAlign =
+            ContentAlignment.TopLeft;
+
+        instruccion.Padding =
+            new Padding(0, 16, 0, 0);
+
+        tabla.Controls.Add(instruccion, 0, 6);
+
+        var pie = new GradientSurface(
+            Color.FromArgb(249, 246, 238),
+            Color.FromArgb(231, 240, 230),
+            14)
         {
             Dock = DockStyle.Fill,
             Margin = Padding.Empty,
-            BackColor = TransRedTheme.Superficie
+            Padding = new Padding(14, 10, 14, 10)
         };
 
-        var estado = new TableLayoutPanel
+        var pieTexto = new Label
         {
-            Dock = DockStyle.Bottom,
-            Height = 96,
+            Text =
+                "EXPLORACIÓN INTELIGENTE\n" +
+                "Red de transporte del suroccidente",
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent,
+            ForeColor = TransRedTheme.Tinta,
+            Font = new Font("Segoe UI", 9),
+            TextAlign = ContentAlignment.MiddleLeft
+        };
+
+        pie.Controls.Add(pieTexto);
+        tabla.Controls.Add(pie, 0, 7);
+
+        tarjeta.Controls.Add(tabla);
+        return tarjeta;
+    }
+
+    private static Control CrearPanelMapa(
+        IGestorTransporte gestor)
+    {
+        var superficie = new GradientSurface(
+            Color.FromArgb(237, 244, 235),
+            Color.FromArgb(229, 238, 228),
+            22)
+        {
+            Dock = DockStyle.Fill,
+            Margin = Padding.Empty,
+            Padding = new Padding(16)
+        };
+
+        var tabla = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 3,
             Margin = Padding.Empty,
-            Padding = new Padding(13, 10, 13, 8),
-            BackColor = FondoCampo
+            BackColor = Color.Transparent
         };
 
-        estado.ColumnStyles.Add(
+        tabla.ColumnStyles.Add(
             new ColumnStyle(SizeType.Percent, 100));
 
-        estado.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 22));
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 50));
 
-        estado.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 29));
-
-        estado.RowStyles.Add(
+        tabla.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
-        estado.Controls.Add(
-            CrearTexto(
-                "ESTADO ACTUAL", 7.5f,
-                FontStyle.Bold, TextoTenue),
-            0, 0);
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 53));
 
-        estado.Controls.Add(
-            CrearTexto(
-                "Sin recorrido activo", 10,
-                FontStyle.Bold, TransRedTheme.Tinta),
-            0, 1);
+        var titulo = Texto(
+            "RED DE TRANSPORTE  /  EXPLORADOR",
+            9,
+            FontStyle.Bold,
+            TransRedTheme.Bosque
+        );
 
-        estado.Controls.Add(
-            CrearTexto(
-                "Todavía no hay resultados", 8.5f,
-                FontStyle.Regular,
-                TransRedTheme.TextoSecundario),
-            0, 2);
+        titulo.Padding = new Padding(10, 0, 0, 0);
 
-        areaEstado.Controls.Add(estado);
-        lateral.Controls.Add(areaEstado, 0, 6);
-
-        return lateral;
-    }
-
-    // Campos de muestra, sin funcionalidad todavía
-    private static Control CrearCampoVisual(
-        string titulo,
-        string descripcion)
-    {
-        var bloque = new TableLayoutPanel
+        // Conserva la conexión a los datos reales
+        var mapa = new LienzoRed(gestor)
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 2,
-            Margin = Padding.Empty,
-            Padding = new Padding(0, 5, 0, 12)
+            Margin = new Padding(2),
+            BackColor = TransRedTheme.FondoMapa
         };
 
-        bloque.ColumnStyles.Add(
-            new ColumnStyle(SizeType.Percent, 100));
-
-        bloque.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 25));
-
-        bloque.RowStyles.Add(
-            new RowStyle(SizeType.Percent, 100));
-
-        bloque.Controls.Add(
-            CrearTexto(
-                titulo, 8, FontStyle.Bold,
-                TransRedTheme.TextoSecundario),
-            0, 0);
-
-        var campo = new Label
+        var pie = new GradientSurface(
+            Color.FromArgb(252, 251, 247),
+            Color.FromArgb(243, 247, 240),
+            12)
         {
-            Text = descripcion,
             Dock = DockStyle.Fill,
-            Margin = Padding.Empty,
-            Padding = new Padding(12, 0, 8, 0),
-            BackColor = FondoCampo,
-            ForeColor = TextoTenue,
-            Font = new Font("Segoe UI", 9.5f),
+            Margin = new Padding(2, 9, 2, 0),
+            Padding = new Padding(14, 6, 14, 6)
+        };
+
+        var pieTexto = new Label
+        {
+            Text =
+                "RED INTERACTIVA  ·  " +
+                "Selecciona una parada para conocer sus conexiones",
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent,
+            ForeColor = TransRedTheme.TextoSecundario,
+            Font = new Font("Segoe UI", 8.5f),
             TextAlign = ContentAlignment.MiddleLeft,
             AutoEllipsis = true
         };
 
-        bloque.Controls.Add(campo, 0, 1);
+        pie.Controls.Add(pieTexto);
 
-        return bloque;
+        tabla.Controls.Add(titulo, 0, 0);
+        tabla.Controls.Add(mapa, 0, 1);
+        tabla.Controls.Add(pie, 0, 2);
+
+        superficie.Controls.Add(tabla);
+
+        return superficie;
     }
 
-    // Lienzo adaptable a cualquier tamaño de ventana
-    private static Control CrearLienzo(IGestorTransporte gestor)
-    {
-        var lienzo = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 3,
-            Margin = Padding.Empty,
-            Padding = new Padding(25, 20, 25, 18),
-            BackColor = FondoRed
-        };
-
-        lienzo.ColumnStyles.Add(
-            new ColumnStyle(SizeType.Percent, 100));
-
-        lienzo.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 38));
-
-        lienzo.RowStyles.Add(
-            new RowStyle(SizeType.Percent, 100));
-
-        lienzo.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 28));
-
-        lienzo.Controls.Add(
-            CrearTexto(
-                "02 / VISUALIZACIÓN DE RED",
-                8,
-                FontStyle.Bold,
-                TransRedTheme.TextoSecundario),
-            0, 0);
-
-        // Todo el mensaje se dibuja en un solo control
-        var estadoVacio = new LienzoRed(gestor)
-        {
-            Dock = DockStyle.Fill,
-            Margin = Padding.Empty
-        };
-
-        lienzo.Controls.Add(estadoVacio, 0, 1);
-
-        var pie = CrearTexto(
-            "RED SIN DATOS CARGADOS",
-            8,
-            FontStyle.Regular,
-            TextoTenue
-        );
-
-        pie.TextAlign = ContentAlignment.MiddleRight;
-
-        lienzo.Controls.Add(pie, 0, 2);
-
-        return lienzo;
-    }
-
-    private static Control CrearVistaSeccion(string seccion)
-    {
-        var datos = seccion switch
-        {
-            "Paradas" => (
-                "01 / GESTIÓN DE PARADAS",
-                "Administrar paradas",
-                "Aquí podrás registrar, buscar y consultar paradas"
-            ),
-
-            "Conexiones" => (
-                "02 / CONEXIONES",
-                "Conexiones de transporte",
-                "Aquí podrás administrar las conexiones de la red"
-            ),
-
-            "Planificar" => (
-                "03 / PLANIFICACIÓN",
-                "Planificar un recorrido",
-                "Aquí podrás consultar los recorridos disponibles"
-            ),
-
-            "Algoritmos" => (
-                "04 / ALGORITMOS",
-                "Explorar algoritmos",
-                "Aquí podrás visualizar BFS, DFS y conectividad"
-            ),
-
-            _ => (
-                "TRANSRED",
-                "Sección no disponible",
-                "Esta sección todavía no está configurada"
-            )
-        };
-
-        var contenedor = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 2,
-            Margin = Padding.Empty,
-            Padding = new Padding(25, 22, 25, 22),
-            BackColor = TransRedTheme.Fondo
-        };
-
-        contenedor.ColumnStyles.Add(
-            new ColumnStyle(SizeType.Percent, 100));
-
-        contenedor.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 44));
-
-        contenedor.RowStyles.Add(
-            new RowStyle(SizeType.Percent, 100));
-
-        var encabezado = CrearTexto(
-            datos.Item1,
-            9,
-            FontStyle.Bold,
-            TransRedTheme.Acento
-        );
-
-        var vista = new VistaSeccionVacia
-        {
-            TituloSeccion = datos.Item2,
-            Descripcion = datos.Item3
-        };
-
-        contenedor.Controls.Add(encabezado, 0, 0);
-        contenedor.Controls.Add(vista, 0, 1);
-
-        return contenedor;
-    }
-
-    // Navegación visual del commit 1.2
-    private static Control CrearNavegacion()
-    {
-        var fondo = new Panel
-        {
-            Dock = DockStyle.Fill,
-            Margin = Padding.Empty,
-            Padding = new Padding(18, 4, 18, 4),
-            BackColor = TransRedTheme.Superficie
-        };
-
-        var barra = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            Margin = Padding.Empty,
-            Padding = Padding.Empty,
-            WrapContents = false,
-            FlowDirection = FlowDirection.LeftToRight,
-            AutoScroll = true,
-            BackColor = TransRedTheme.Superficie
-        };
-
-        barra.Controls.Add(
-            CrearPestana("Explorar red", true, 130));
-
-        barra.Controls.Add(
-            CrearPestana("Paradas", false, 94));
-
-        barra.Controls.Add(
-            CrearPestana("Conexiones", false, 116));
-
-        barra.Controls.Add(
-            CrearPestana("Planificar", false, 104));
-
-        barra.Controls.Add(
-            CrearPestana("Algoritmos", false, 108));
-
-        fondo.Controls.Add(barra);
-
-        return fondo;
-    }
-
-    private static Control CrearPestana(
-        string texto, bool activa, int ancho)
-    {
-        var contenedor = new Panel
-        {
-            Size = new Size(ancho, 46),
-            Margin = new Padding(0, 0, 8, 0),
-            BackColor = TransRedTheme.Superficie
-        };
-
-        var etiqueta = new Label
-        {
-            Text = texto,
-            Dock = DockStyle.Fill,
-            Margin = Padding.Empty,
-            ForeColor = activa
-                ? TransRedTheme.Acento
-                : TransRedTheme.TextoSecundario,
-            Font = new Font(
-                "Segoe UI",
-                9,
-                activa ? FontStyle.Bold : FontStyle.Regular),
-            TextAlign = ContentAlignment.MiddleCenter
-        };
-
-        contenedor.Controls.Add(etiqueta);
-
-        if (activa)
-        {
-            var linea = new Panel
-            {
-                Dock = DockStyle.Bottom,
-                Height = 2,
-                BackColor = TransRedTheme.Acento
-            };
-
-            contenedor.Controls.Add(linea);
-            linea.BringToFront();
-        }
-
-        return contenedor;
-    }
-
-    private static Label CrearTexto(
-        string texto,
+    private static Label Texto(
+        string contenido,
         float tamano,
         FontStyle estilo,
         Color color)
     {
         return new Label
         {
-            Text = texto,
+            Text = contenido,
             Dock = DockStyle.Fill,
             Margin = Padding.Empty,
-            ForeColor = color,
             BackColor = Color.Transparent,
+            ForeColor = color,
             Font = new Font(
                 "Segoe UI", tamano, estilo),
             TextAlign = ContentAlignment.MiddleLeft,
-            AutoEllipsis = true
+            AutoEllipsis = false
         };
-    }
-}
-
-// Símbolo del encabezado
-internal class SimboloTransRed : Control
-{
-    public SimboloTransRed()
-    {
-        DoubleBuffered = true;
-    }
-
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        base.OnPaint(e);
-
-        var g = e.Graphics;
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-
-        using var fondo = new SolidBrush(
-            TransRedTheme.Acento);
-
-        using var blanco = new SolidBrush(Color.White);
-        using var linea = new Pen(Color.White, 2.3f);
-
-        g.FillRectangle(
-            fondo, 0, 0, Width, Height);
-
-        float centroY = Height / 2f;
-        float x1 = Width * 0.27f;
-        float x2 = Width * 0.73f;
-
-        g.DrawLine(
-            linea, x1, centroY, x2, centroY);
-
-        g.FillEllipse(
-            blanco, x1 - 4, centroY - 4, 8, 8);
-
-        g.FillEllipse(
-            blanco, x2 - 4, centroY - 4, 8, 8);
-    }
-}
-
-// Estado vacío dibujado como un solo componente
-internal class EstadoRedVacia : Control
-{
-    public EstadoRedVacia()
-    {
-        DoubleBuffered = true;
-        ResizeRedraw = true;
-    }
-
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        base.OnPaint(e);
-
-        if (Width <= 0 || Height <= 0)
-            return;
-
-        var g = e.Graphics;
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-
-        float centroX = Width / 2f;
-        float centroY = Height / 2f;
-
-        // Posiciones relativas al centro del lienzo
-        float iconoY = centroY - 57;
-
-        using var linea = new Pen(
-            Color.FromArgb(118, 171, 151), 2.3f);
-
-        using var fondoNodo = new SolidBrush(
-            Color.FromArgb(241, 246, 242));
-
-        using var bordeNodo = new Pen(
-            TransRedTheme.Acento, 2.3f);
-
-        PointF[] nodos =
-        {
-            new PointF(centroX - 30, iconoY + 14),
-            new PointF(centroX, iconoY - 8),
-            new PointF(centroX + 30, iconoY + 14)
-        };
-
-        // Dibuja las tres conexiones
-        g.DrawLine(linea, nodos[0], nodos[1]);
-        g.DrawLine(linea, nodos[1], nodos[2]);
-        g.DrawLine(linea, nodos[0], nodos[2]);
-
-        // Dibuja los tres nodos
-        foreach (PointF nodo in nodos)
-        {
-            g.FillEllipse(
-                fondoNodo,
-                nodo.X - 6,
-                nodo.Y - 6,
-                12, 12);
-
-            g.DrawEllipse(
-                bordeNodo,
-                nodo.X - 6,
-                nodo.Y - 6,
-                12, 12);
-        }
-
-        // Textos centrados bajo el símbolo
-        using var fuenteTitulo = new Font(
-            "Segoe UI", 17, FontStyle.Bold);
-
-        using var fuenteDetalle = new Font(
-            "Segoe UI", 9.5f, FontStyle.Regular);
-
-        var rectTitulo = new Rectangle(
-            0,
-            (int)(centroY - 17),
-            Width,
-            43
-        );
-
-        var rectDetalle = new Rectangle(
-            0,
-            (int)(centroY + 24),
-            Width,
-            32
-        );
-
-        TextRenderer.DrawText(
-            g,
-            "Tu red de transporte",
-            fuenteTitulo,
-            rectTitulo,
-            TransRedTheme.Tinta,
-            TextFormatFlags.HorizontalCenter |
-            TextFormatFlags.VerticalCenter |
-            TextFormatFlags.EndEllipsis
-        );
-
-        TextRenderer.DrawText(
-            g,
-            "Aquí se visualizarán las paradas y conexiones",
-            fuenteDetalle,
-            rectDetalle,
-            TransRedTheme.TextoSecundario,
-            TextFormatFlags.HorizontalCenter |
-            TextFormatFlags.VerticalCenter |
-            TextFormatFlags.EndEllipsis
-        );
     }
 }

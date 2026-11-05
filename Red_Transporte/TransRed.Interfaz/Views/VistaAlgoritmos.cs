@@ -1,412 +1,646 @@
 ﻿
+using System;
+using System.Drawing;
+using System.Windows.Forms;
 using TransRed.Core.Modelos;
 using TransRed.Core.Servicios;
+using TransRed.Interfaz.Components;
+using TransRed.Interfaz.Design;
 
-namespace TransRed.Interfaz.Views
+namespace TransRed.Interfaz.Views;
+
+// Laboratorio visual de BFS, DFS y Union-Find
+public class VistaAlgoritmos : UserControl
 {
-    public class VistaAlgoritmos : UserControl
+    private readonly IGestorTransporte gestor;
+
+    private readonly ComboBox cmbInicio = new();
+    private readonly ComboBox cmbOrigen = new();
+    private readonly ComboBox cmbDestino = new();
+
+    private readonly Label lblTitulo = new();
+    private readonly Label lblDescripcion = new();
+    private readonly Label lblEstado = new();
+    private readonly Label lblConectividad = new();
+
+    private readonly FlowLayoutPanel pasos = new();
+    private readonly Panel areaVistas = new();
+
+    private readonly Button btnBFS = new();
+    private readonly Button btnDFS = new();
+    private readonly Button btnUnion = new();
+    private readonly Button btnReproducir = new();
+
+    private readonly System.Windows.Forms.Timer animacion = new();
+
+    private Panel vistaRecorrido = null!;
+    private Panel vistaUnion = null!;
+
+    private Parada[] recorrido = Array.Empty<Parada>();
+    private int pasoActual;
+    private string algoritmo = "BFS";
+
+    public VistaAlgoritmos(IGestorTransporte gestor)
     {
-        private readonly IGestorTransporte gestor;
+        this.gestor = gestor;
 
-        private readonly ComboBox cmbInicioBFS;
-        private readonly ComboBox cmbInicioDFS;
-        private readonly ComboBox cmbOrigen;
-        private readonly ComboBox cmbDestino;
+        Dock = DockStyle.Fill;
+        BackColor = TransRedTheme.Fondo;
+        Padding = new Padding(24);
 
-        private readonly Label lblResultadoBFS;
-        private readonly Label lblResultadoDFS;
-        private readonly Label lblResultadoConectividad;
+        animacion.Interval = 380;
+        animacion.Tick += (_, _) => AvanzarPaso();
 
-        public VistaAlgoritmos(IGestorTransporte gestor)
+        var principal = new TableLayoutPanel
         {
-            this.gestor = gestor;
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 3,
+            BackColor = TransRedTheme.Fondo
+        };
 
-            Dock = DockStyle.Fill;
-            BackColor = Color.White;
-            Padding = new Padding(20);
+        principal.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Percent, 100));
 
-            Label lblTitulo = new Label
-            {
-                Text = "Algoritmos de red",
-                Font = new Font("Segoe UI", 20, FontStyle.Bold),
-                ForeColor = Color.FromArgb(35, 45, 60),
-                Dock = DockStyle.Top,
-                Height = 45
-            };
+        principal.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 104));
 
-            Label lblDescripcion = new Label
-            {
-                Text = "Explora la red mediante recorridos y comprueba la conectividad entre paradas.",
-                Font = new Font("Segoe UI", 10),
-                ForeColor = Color.Gray,
-                Dock = DockStyle.Top,
-                Height = 35
-            };
+        principal.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 66));
 
-            FlowLayoutPanel panelPrincipal = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.TopDown,
-                WrapContents = false,
-                AutoScroll = true,
-                Padding = new Padding(5)
-            };
+        principal.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
 
-            GroupBox grpBFS = CrearGrupo(
-                "BFS - Búsqueda en anchura");
+        principal.Controls.Add(CrearEncabezado(), 0, 0);
+        principal.Controls.Add(CrearPestanas(), 0, 1);
 
-            cmbInicioBFS = CrearCombo();
+        areaVistas.Dock = DockStyle.Fill;
+        areaVistas.BackColor = TransRedTheme.Fondo;
 
-            Button btnBFS = CrearBoton(
-                "Ejecutar BFS",
-                Color.FromArgb(35, 100, 160));
+        vistaRecorrido = CrearVistaRecorrido();
+        vistaUnion = CrearVistaUnion();
 
-            lblResultadoBFS = CrearResultado();
+        areaVistas.Controls.Add(vistaRecorrido);
+        areaVistas.Controls.Add(vistaUnion);
 
-            btnBFS.Click += BtnBFS_Click;
+        principal.Controls.Add(areaVistas, 0, 2);
+        Controls.Add(principal);
 
-            grpBFS.Controls.Add(
-                CrearPanelAlgoritmo(
-                    "Parada inicial",
-                    cmbInicioBFS,
-                    btnBFS,
-                    lblResultadoBFS));
+        CargarParadas();
+        MostrarAlgoritmo("BFS");
+    }
 
-            GroupBox grpDFS = CrearGrupo(
-                "DFS - Búsqueda en profundidad");
-
-            cmbInicioDFS = CrearCombo();
-
-            Button btnDFS = CrearBoton(
-                "Ejecutar DFS",
-                Color.FromArgb(45, 130, 90));
-
-            lblResultadoDFS = CrearResultado();
-
-            btnDFS.Click += BtnDFS_Click;
-
-            grpDFS.Controls.Add(
-                CrearPanelAlgoritmo(
-                    "Parada inicial",
-                    cmbInicioDFS,
-                    btnDFS,
-                    lblResultadoDFS));
-
-            GroupBox grpUnionFind = CrearGrupo(
-                "Union-Find - Comprobar conectividad");
-
-            cmbOrigen = CrearCombo();
-            cmbDestino = CrearCombo();
-
-            Button btnConectividad = CrearBoton(
-                "Comprobar conectividad",
-                Color.FromArgb(120, 85, 155));
-
-            lblResultadoConectividad = CrearResultado();
-
-            btnConectividad.Click += BtnConectividad_Click;
-
-            FlowLayoutPanel panelConectividad = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = true,
-                Padding = new Padding(10),
-                AutoScroll = true
-            };
-
-            panelConectividad.Controls.Add(
-                CrearCampo("Parada de origen", cmbOrigen));
-
-            panelConectividad.Controls.Add(
-                CrearCampo("Parada de destino", cmbDestino));
-
-            panelConectividad.Controls.Add(btnConectividad);
-            panelConectividad.Controls.Add(lblResultadoConectividad);
-
-            grpUnionFind.Controls.Add(panelConectividad);
-
-            panelPrincipal.Controls.Add(grpBFS);
-            panelPrincipal.Controls.Add(grpDFS);
-            panelPrincipal.Controls.Add(grpUnionFind);
-
-            Controls.Add(panelPrincipal);
-            Controls.Add(lblDescripcion);
-            Controls.Add(lblTitulo);
-
-            ActualizarParadas();
-        }
-
-        private GroupBox CrearGrupo(string titulo)
+    private Control CrearEncabezado()
+    {
+        var tabla = new TableLayoutPanel
         {
-            return new GroupBox
-            {
-                Text = titulo,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                ForeColor = Color.FromArgb(35, 45, 60),
-                Width = 950,
-                Height = 175,
-                Padding = new Padding(12),
-                Margin = new Padding(5, 5, 5, 15)
-            };
-        }
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 3,
+            BackColor = TransRedTheme.Fondo
+        };
 
-        private ComboBox CrearCombo()
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 24));
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 44));
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
+
+        tabla.Controls.Add(
+            Etiqueta("LABORATORIO DE RED", 8,
+                TransRedTheme.Cobre, true), 0, 0);
+
+        tabla.Controls.Add(
+            Etiqueta("Explora los algoritmos", 22,
+                TransRedTheme.Tinta, true), 0, 1);
+
+        tabla.Controls.Add(
+            Etiqueta(
+                "Recorridos y conectividad sobre tu red de transporte",
+                9.5f,
+                TransRedTheme.TextoSecundario), 0, 2);
+
+        return tabla;
+    }
+
+    private Control CrearPestanas()
+    {
+        var barra = new FlowLayoutPanel
         {
-            return new ComboBox
-            {
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Width = 220,
-                Font = new Font("Segoe UI", 10)
-            };
-        }
+            Dock = DockStyle.Fill,
+            WrapContents = false,
+            BackColor = TransRedTheme.Fondo,
+            Padding = new Padding(0, 5, 0, 8)
+        };
 
-        private Button CrearBoton(string texto, Color color)
+        ConfigurarPestana(btnBFS, "BFS", 108);
+        ConfigurarPestana(btnDFS, "DFS", 108);
+        ConfigurarPestana(btnUnion, "Union-Find", 145);
+
+        btnBFS.Click += (_, _) => MostrarAlgoritmo("BFS");
+        btnDFS.Click += (_, _) => MostrarAlgoritmo("DFS");
+        btnUnion.Click += (_, _) => MostrarAlgoritmo("Union-Find");
+
+        barra.Controls.Add(btnBFS);
+        barra.Controls.Add(btnDFS);
+        barra.Controls.Add(btnUnion);
+
+        return barra;
+    }
+
+    private void ConfigurarPestana(
+        Button boton, string texto, int ancho)
+    {
+        boton.Text = texto;
+        boton.Width = ancho;
+        boton.Height = 43;
+        boton.Margin = new Padding(0, 0, 9, 0);
+        boton.Cursor = Cursors.Hand;
+        boton.FlatStyle = FlatStyle.Flat;
+        boton.FlatAppearance.BorderSize = 0;
+        boton.Font = new Font("Segoe UI", 10);
+        boton.UseVisualStyleBackColor = false;
+    }
+
+    private Panel CrearVistaRecorrido()
+    {
+        var tarjeta = CrearTarjeta();
+
+        var tabla = new TableLayoutPanel
         {
-            Button boton = new Button
-            {
-                Text = texto,
-                Width = 180,
-                Height = 35,
-                BackColor = color,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                Margin = new Padding(8, 20, 8, 5)
-            };
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 4,
+            BackColor = Color.Transparent
+        };
 
-            boton.FlatAppearance.BorderSize = 0;
+        tabla.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Percent, 100));
 
-            return boton;
-        }
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 86));
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 94));
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 46));
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
 
-        private Label CrearResultado()
+        var encabezado = new TableLayoutPanel
         {
-            return new Label
-            {
-                Text = "Resultado: pendiente",
-                Font = new Font("Segoe UI", 10),
-                ForeColor = Color.FromArgb(45, 55, 70),
-                AutoSize = true,
-                MaximumSize = new Size(850, 0),
-                Margin = new Padding(8, 12, 8, 8)
-            };
-        }
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            BackColor = Color.Transparent
+        };
 
-        private Control CrearCampo(string titulo, Control control)
+        encabezado.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 44));
+        encabezado.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
+
+        lblTitulo.Dock = DockStyle.Fill;
+        lblTitulo.Font = new Font(
+            "Segoe UI", 18, FontStyle.Bold);
+        lblTitulo.ForeColor = TransRedTheme.Tinta;
+
+        lblDescripcion.Dock = DockStyle.Fill;
+        lblDescripcion.Font = new Font("Segoe UI", 9.5f);
+        lblDescripcion.ForeColor =
+            TransRedTheme.TextoSecundario;
+
+        encabezado.Controls.Add(lblTitulo, 0, 0);
+        encabezado.Controls.Add(lblDescripcion, 0, 1);
+
+        var controles = new FlowLayoutPanel
         {
-            FlowLayoutPanel panel = new FlowLayoutPanel
-            {
-                FlowDirection = FlowDirection.TopDown,
-                Width = control.Width + 15,
-                Height = 65,
-                WrapContents = false,
-                Margin = new Padding(5)
-            };
+            Dock = DockStyle.Fill,
+            WrapContents = true,
+            Padding = new Padding(0, 8, 0, 5),
+            BackColor = Color.Transparent
+        };
 
-            Label etiqueta = new Label
-            {
-                Text = titulo,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold),
-                ForeColor = Color.FromArgb(55, 65, 80),
-                AutoSize = true,
-                Height = 23
-            };
+        controles.Controls.Add(
+            CrearCampo("PARADA INICIAL", cmbInicio, 300));
 
-            panel.Controls.Add(etiqueta);
-            panel.Controls.Add(control);
-
-            return panel;
-        }
-
-        private FlowLayoutPanel CrearPanelAlgoritmo(
-            string titulo,
-            ComboBox combo,
-            Button boton,
-            Label resultado)
+        var ejecutar = new Button
         {
-            FlowLayoutPanel panel = new FlowLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = true,
-                Padding = new Padding(10),
-                AutoScroll = true
-            };
+            Text = "Ejecutar recorrido",
+            Width = 172,
+            Height = 40,
+            Margin = new Padding(12, 30, 8, 0)
+        };
 
-            panel.Controls.Add(CrearCampo(titulo, combo));
-            panel.Controls.Add(boton);
-            panel.Controls.Add(resultado);
+        UiStyles.AplicarBotonPrincipal(ejecutar);
+        ejecutar.Click += (_, _) => EjecutarRecorrido();
 
-            return panel;
-        }
+        btnReproducir.Text = "Reproducir";
+        btnReproducir.Width = 130;
+        btnReproducir.Height = 40;
+        btnReproducir.Margin = new Padding(4, 30, 0, 0);
 
-        private void ActualizarParadas()
+        UiStyles.AplicarBotonSecundario(btnReproducir);
+        btnReproducir.Click += (_, _) => AlternarReproduccion();
+
+        controles.Controls.Add(ejecutar);
+        controles.Controls.Add(btnReproducir);
+
+        lblEstado.Dock = DockStyle.Fill;
+        lblEstado.Font = new Font(
+            "Segoe UI", 10, FontStyle.Bold);
+        lblEstado.ForeColor = TransRedTheme.Acento;
+        lblEstado.TextAlign = ContentAlignment.MiddleLeft;
+
+        pasos.Dock = DockStyle.Fill;
+        pasos.AutoScroll = true;
+        pasos.WrapContents = true;
+        pasos.Padding = new Padding(12);
+        pasos.BackColor = TransRedTheme.SuperficieAlterna;
+
+        var resultado = new TableLayoutPanel
         {
-            string? codigoBFS =
-                (cmbInicioBFS.SelectedItem as Parada)?.Codigo;
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+            BackColor = Color.Transparent
+        };
 
-            string? codigoDFS =
-                (cmbInicioDFS.SelectedItem as Parada)?.Codigo;
+        resultado.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 30));
+        resultado.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
 
-            string? codigoOrigen =
-                (cmbOrigen.SelectedItem as Parada)?.Codigo;
+        resultado.Controls.Add(
+            Etiqueta("SECUENCIA DE VISITA", 8,
+                TransRedTheme.TextoTenue, true), 0, 0);
 
-            string? codigoDestino =
-                (cmbDestino.SelectedItem as Parada)?.Codigo;
+        resultado.Controls.Add(pasos, 0, 1);
 
-            Parada[] paradas = gestor.ObtenerTodasParadas();
+        tabla.Controls.Add(encabezado, 0, 0);
+        tabla.Controls.Add(controles, 0, 1);
+        tabla.Controls.Add(lblEstado, 0, 2);
+        tabla.Controls.Add(resultado, 0, 3);
 
-            cmbInicioBFS.Items.Clear();
-            cmbInicioDFS.Items.Clear();
-            cmbOrigen.Items.Clear();
-            cmbDestino.Items.Clear();
+        tarjeta.Controls.Add(tabla);
+        return tarjeta;
+    }
+
+    private Panel CrearVistaUnion()
+    {
+        var tarjeta = CrearTarjeta();
+
+        var tabla = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 4,
+            BackColor = Color.Transparent
+        };
+
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 65));
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 105));
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 64));
+        tabla.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
+
+        tabla.Controls.Add(
+            Etiqueta("¿ESTÁN CONECTADAS ESTAS PARADAS?",
+                16, TransRedTheme.Tinta, true), 0, 0);
+
+        var controles = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            WrapContents = true,
+            Padding = new Padding(0, 6, 0, 0),
+            BackColor = Color.Transparent
+        };
+
+        controles.Controls.Add(
+            CrearCampo("ORIGEN", cmbOrigen, 240));
+
+        controles.Controls.Add(
+            CrearCampo("DESTINO", cmbDestino, 240));
+
+        var comprobar = new Button
+        {
+            Text = "Comprobar",
+            Width = 145,
+            Height = 40,
+            Margin = new Padding(12, 30, 0, 0)
+        };
+
+        UiStyles.AplicarBotonPrincipal(comprobar);
+        comprobar.Click += (_, _) => ComprobarConexion();
+
+        controles.Controls.Add(comprobar);
+
+        lblConectividad.Text = "Selecciona dos paradas";
+        lblConectividad.Dock = DockStyle.Fill;
+        lblConectividad.Font = new Font(
+            "Segoe UI", 13, FontStyle.Bold);
+        lblConectividad.ForeColor = TransRedTheme.Tinta;
+        lblConectividad.TextAlign =
+            ContentAlignment.MiddleLeft;
+
+        tabla.Controls.Add(controles, 0, 1);
+        tabla.Controls.Add(lblConectividad, 0, 2);
+
+        tabla.Controls.Add(
+            Etiqueta(
+                "La comprobación utiliza Union-Find del proyecto. " +
+                "El resultado indica si las paradas pertenecen " +
+                "a una misma componente conectada.",
+                10,
+                TransRedTheme.TextoSecundario), 0, 3);
+
+        tarjeta.Controls.Add(tabla);
+        return tarjeta;
+    }
+
+    private static Panel CrearTarjeta()
+    {
+        return new GradientSurface(
+            Color.White,
+            Color.FromArgb(249, 249, 244),
+            18)
+        {
+            Dock = DockStyle.Fill,
+            Margin = Padding.Empty,
+            Padding = new Padding(26)
+        };
+    }
+
+    private static Control CrearCampo(
+        string titulo, ComboBox combo, int ancho)
+    {
+        var panel = new TableLayoutPanel
+        {
+            Width = ancho,
+            Height = 76,
+            RowCount = 2,
+            ColumnCount = 1,
+            Margin = Padding.Empty
+        };
+
+        panel.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 27));
+        panel.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
+
+        panel.Controls.Add(
+            Etiqueta(titulo, 8,
+                TransRedTheme.TextoSecundario, true), 0, 0);
+
+        UiStyles.AplicarCombo(combo);
+
+        combo.Dock = DockStyle.Top;
+        combo.DropDownWidth = 340;
+        combo.Margin = Padding.Empty;
+
+        panel.Controls.Add(combo, 0, 1);
+        return panel;
+    }
+
+    private static Label Etiqueta(
+        string texto,
+        float tamano,
+        Color color,
+        bool negrita = false)
+    {
+        return new Label
+        {
+            Text = texto,
+            Dock = DockStyle.Fill,
+            ForeColor = color,
+            BackColor = Color.Transparent,
+            Font = new Font(
+                "Segoe UI", tamano,
+                negrita ? FontStyle.Bold : FontStyle.Regular),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = Padding.Empty,
+            AutoEllipsis = true
+        };
+    }
+
+    private void CargarParadas()
+    {
+        Parada[] paradas = gestor.ObtenerTodasParadas();
+
+        foreach (ComboBox combo in new[]
+        {
+            cmbInicio, cmbOrigen, cmbDestino
+        })
+        {
+            combo.Items.Clear();
 
             foreach (Parada parada in paradas)
-            {
-                cmbInicioBFS.Items.Add(parada);
-                cmbInicioDFS.Items.Add(parada);
-                cmbOrigen.Items.Add(parada);
-                cmbDestino.Items.Add(parada);
-            }
+                combo.Items.Add(parada);
 
-            SeleccionarParada(cmbInicioBFS, codigoBFS);
-            SeleccionarParada(cmbInicioDFS, codigoDFS);
-            SeleccionarParada(cmbOrigen, codigoOrigen);
-            SeleccionarParada(cmbDestino, codigoDestino);
+            if (combo.Items.Count > 0)
+                combo.SelectedIndex = 0;
         }
+    }
 
-        private void SeleccionarParada(
-            ComboBox combo,
-            string? codigo)
+    private void MostrarAlgoritmo(string seleccionado)
+    {
+        animacion.Stop();
+        algoritmo = seleccionado;
+
+        btnBFS.BackColor = seleccionado == "BFS"
+            ? TransRedTheme.Bosque : TransRedTheme.AcentoSuave;
+        btnDFS.BackColor = seleccionado == "DFS"
+            ? TransRedTheme.Bosque : TransRedTheme.AcentoSuave;
+        btnUnion.BackColor = seleccionado == "Union-Find"
+            ? TransRedTheme.Bosque : TransRedTheme.AcentoSuave;
+
+        foreach (Button boton in new[]
         {
-            if (combo.Items.Count == 0)
-                return;
-
-            if (!string.IsNullOrWhiteSpace(codigo))
-            {
-                for (int i = 0; i < combo.Items.Count; i++)
-                {
-                    if (combo.Items[i] is Parada parada &&
-                        parada.Codigo == codigo)
-                    {
-                        combo.SelectedIndex = i;
-                        return;
-                    }
-                }
-            }
-
-            combo.SelectedIndex = 0;
-        }
-
-        private void BtnBFS_Click(object? sender, EventArgs e)
+            btnBFS, btnDFS, btnUnion
+        })
         {
-            if (cmbInicioBFS.SelectedItem is not Parada inicio)
-            {
-                MessageBox.Show(
-                    "Registra y selecciona una parada inicial.",
-                    "Datos incompletos",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-
-                return;
-            }
-
-            Parada[] resultado = gestor.RecorrerBFS(inicio.Codigo);
-
-            MostrarRecorrido(
-                resultado,
-                lblResultadoBFS,
-                "BFS");
+            boton.ForeColor = boton.BackColor ==
+                TransRedTheme.Bosque
+                ? Color.White
+                : TransRedTheme.Tinta;
         }
 
-        private void BtnDFS_Click(object? sender, EventArgs e)
+        bool esUnion = seleccionado == "Union-Find";
+
+        vistaRecorrido.Visible = !esUnion;
+        vistaUnion.Visible = esUnion;
+
+        if (esUnion)
+            vistaUnion.BringToFront();
+        else
+            vistaRecorrido.BringToFront();
+
+        if (!esUnion)
         {
-            if (cmbInicioDFS.SelectedItem is not Parada inicio)
-            {
-                MessageBox.Show(
-                    "Registra y selecciona una parada inicial.",
-                    "Datos incompletos",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
+            lblTitulo.Text = seleccionado == "BFS"
+                ? "Búsqueda en anchura"
+                : "Búsqueda en profundidad";
 
-                return;
-            }
+            lblDescripcion.Text = seleccionado == "BFS"
+                ? "Descubre el orden de visita por niveles"
+                : "Explora cada rama antes de retroceder";
 
-            Parada[] resultado = gestor.RecorrerDFS(inicio.Codigo);
-
-            MostrarRecorrido(
-                resultado,
-                lblResultadoDFS,
-                "DFS");
+            recorrido = Array.Empty<Parada>();
+            pasoActual = 0;
+            pasos.Controls.Clear();
+            lblEstado.Text = "Selecciona una parada para comenzar";
+            btnReproducir.Text = "Reproducir";
         }
+    }
 
-        private void MostrarRecorrido(
-            Parada[] resultado,
-            Label etiqueta,
-            string algoritmo)
+    private void EjecutarRecorrido()
+    {
+        if (cmbInicio.SelectedItem is not Parada inicio)
+            return;
+
+        animacion.Stop();
+        btnReproducir.Text = "Reproducir";
+
+        // El Core determina el orden real
+        recorrido = algoritmo == "BFS"
+            ? gestor.RecorrerBFS(inicio.Codigo)
+            : gestor.RecorrerDFS(inicio.Codigo);
+
+        pasoActual = 0;
+        pasos.Controls.Clear();
+
+        lblEstado.Text = recorrido.Length == 0
+            ? "No hay paradas para recorrer"
+            : $"{recorrido.Length} paradas en el recorrido";
+
+        if (recorrido.Length > 0)
+            animacion.Start();
+    }
+
+    private void AlternarReproduccion()
+    {
+        if (recorrido.Length == 0)
+            return;
+
+        if (animacion.Enabled)
         {
-            if (resultado.Length == 0)
-            {
-                etiqueta.Text = "Resultado: No hay paradas para recorrer.";
-                return;
-            }
-
-            string[] nombres = new string[resultado.Length];
-
-            for (int i = 0; i < resultado.Length; i++)
-            {
-                nombres[i] =
-                    resultado[i].Codigo +
-                    " - " +
-                    resultado[i].Nombre;
-            }
-
-            etiqueta.Text =
-                "Resultado (" + algoritmo + "): " +
-                string.Join(" → ", nombres);
+            animacion.Stop();
+            btnReproducir.Text = "Continuar";
+            return;
         }
 
-        private void BtnConectividad_Click(
-            object? sender,
-            EventArgs e)
+        if (pasoActual >= recorrido.Length)
         {
-            if (cmbOrigen.SelectedItem is not Parada origen ||
-                cmbDestino.SelectedItem is not Parada destino)
-            {
-                MessageBox.Show(
-                    "Selecciona las dos paradas que deseas comparar.",
-                    "Datos incompletos",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-
-                return;
-            }
-
-            if (origen.Codigo == destino.Codigo)
-            {
-                lblResultadoConectividad.Text =
-                    "Resultado: Es la misma parada.";
-
-                return;
-            }
-
-            bool conectadas = gestor.EstanConectadas(
-                origen.Codigo,
-                destino.Codigo);
-
-            if (conectadas)
-            {
-                lblResultadoConectividad.Text =
-                    $"Resultado: {origen.Codigo} y {destino.Codigo} " +
-                    "pertenecen a la misma componente conectada.";
-            }
-            else
-            {
-                lblResultadoConectividad.Text =
-                    $"Resultado: {origen.Codigo} y {destino.Codigo} " +
-                    "no pertenecen a la misma componente conectada.";
-            }
+            pasoActual = 0;
+            pasos.Controls.Clear();
         }
+
+        btnReproducir.Text = "Pausar";
+        animacion.Start();
+    }
+
+    private void AvanzarPaso()
+    {
+        if (pasoActual >= recorrido.Length)
+        {
+            animacion.Stop();
+            btnReproducir.Text = "Reiniciar";
+            return;
+        }
+
+        Parada parada = recorrido[pasoActual];
+        int numero = pasoActual + 1;
+
+        var tarjeta = new Panel
+        {
+            Width = 184,
+            Height = 75,
+            BackColor = Color.White,
+            Margin = new Padding(5),
+            Padding = new Padding(11)
+        };
+
+        var contenido = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            RowCount = 2,
+            ColumnCount = 1
+        };
+
+        contenido.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 25));
+        contenido.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
+
+        contenido.Controls.Add(
+            Etiqueta(
+                $"{numero:00}  ·  {parada.Codigo}",
+                10,
+                TransRedTheme.Acento,
+                true), 0, 0);
+
+        contenido.Controls.Add(
+            Etiqueta(
+                parada.Nombre,
+                8.5f,
+                TransRedTheme.TextoSecundario), 0, 1);
+
+        tarjeta.Controls.Add(contenido);
+        pasos.Controls.Add(tarjeta);
+
+        pasos.ScrollControlIntoView(tarjeta);
+
+        pasoActual++;
+
+        lblEstado.Text =
+            $"Paso {pasoActual} de {recorrido.Length}";
+
+        if (pasoActual >= recorrido.Length)
+        {
+            animacion.Stop();
+            btnReproducir.Text = "Reiniciar";
+        }
+        else
+        {
+            btnReproducir.Text = "Pausar";
+        }
+    }
+
+    private void ComprobarConexion()
+    {
+        if (cmbOrigen.SelectedItem is not Parada origen ||
+            cmbDestino.SelectedItem is not Parada destino)
+            return;
+
+        if (origen.Codigo == destino.Codigo)
+        {
+            lblConectividad.Text = "Es la misma parada";
+            lblConectividad.ForeColor =
+                TransRedTheme.Acento;
+            return;
+        }
+
+        // Se conserva la comprobación del Core
+        bool conectadas = gestor.EstanConectadas(
+            origen.Codigo, destino.Codigo);
+
+        lblConectividad.Text = conectadas
+            ? "Las paradas están conectadas"
+            : "Las paradas no están conectadas";
+
+        lblConectividad.ForeColor = conectadas
+            ? TransRedTheme.Acento
+            : TransRedTheme.Error;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+            animacion.Dispose();
+
+        base.Dispose(disposing);
     }
 }

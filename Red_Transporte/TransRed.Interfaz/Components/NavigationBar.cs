@@ -1,94 +1,164 @@
 using System.ComponentModel;
 using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using TransRed.Interfaz.Design;
 
 namespace TransRed.Interfaz.Components;
 
-// Barra de navegación principal
+// Navegación vertical de Mobility Studio
 public class NavigationBar : UserControl
 {
-    private readonly FlowLayoutPanel barra;
     private readonly Action<string> cambiarVista;
+    private readonly FlowLayoutPanel lista;
 
     public NavigationBar(Action<string> alCambiar)
     {
         cambiarVista = alCambiar;
 
         Dock = DockStyle.Fill;
-        BackColor = TransRedTheme.Superficie;
-        Padding = new Padding(18, 4, 18, 4);
+        BackColor = TransRedTheme.SuperficieAlterna;
+        Padding = new Padding(14, 18, 12, 16);
 
-        barra = new FlowLayoutPanel
+        var contenedor = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            WrapContents = false,
-            AutoScroll = false,
-            FlowDirection = FlowDirection.LeftToRight,
-            BackColor = TransRedTheme.Superficie
+            ColumnCount = 1,
+            RowCount = 3,
+            Margin = Padding.Empty,
+            BackColor = TransRedTheme.SuperficieAlterna
         };
 
-        Controls.Add(barra);
+        contenedor.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Percent, 100));
 
-        AgregarPestana("Explorar red", 130);
-        AgregarPestana("Paradas", 94);
-        AgregarPestana("Conexiones", 116);
-        AgregarPestana("Planificar", 104);
-        AgregarPestana("Algoritmos", 108);
+        contenedor.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 32));
+
+        contenedor.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
+
+        contenedor.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 68));
+
+        var etiqueta = new Label
+        {
+            Text = "ESPACIO DE TRABAJO",
+            Dock = DockStyle.Fill,
+            Font = new Font("Segoe UI", 8, FontStyle.Bold),
+            ForeColor = TransRedTheme.TextoTenue,
+            TextAlign = ContentAlignment.MiddleLeft
+        };
+
+        lista = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            AutoScroll = false,
+            Margin = Padding.Empty,
+            BackColor = TransRedTheme.SuperficieAlterna
+        };
+
+        Agregar("Explorar red", "◎");
+        Agregar("Paradas", "⌖");
+        Agregar("Conexiones", "◇");
+        Agregar("Planificar", "↗");
+        Agregar("Algoritmos", "≡");
+
+        lista.Resize += (_, _) =>
+        {
+            foreach (Control control in lista.Controls)
+                control.Width = Math.Max(80, lista.ClientSize.Width - 4);
+        };
+
+        var pie = new Label
+        {
+            Text = "TRANSRED  /  2026\nMovilidad del suroccidente",
+            Dock = DockStyle.Fill,
+            ForeColor = TransRedTheme.TextoTenue,
+            Font = new Font("Segoe UI", 8.5f),
+            TextAlign = ContentAlignment.BottomLeft
+        };
+
+        contenedor.Controls.Add(etiqueta, 0, 0);
+        contenedor.Controls.Add(lista, 0, 1);
+        contenedor.Controls.Add(pie, 0, 2);
+
+        Controls.Add(contenedor);
 
         Seleccionar("Explorar red");
     }
 
-    private void AgregarPestana(string nombre, int ancho)
+    private void Agregar(string nombre, string icono)
     {
-        var pestana = new PestanaNavegacion
+        var item = new ElementoNavegacion(
+            nombre, icono)
         {
-            Nombre = nombre,
-            Width = ancho,
-            Height = 46,
-            Margin = new Padding(0, 0, 8, 0)
+            Width = 174,
+            Height = 48,
+            Margin = new Padding(0, 0, 0, 8)
         };
 
-        pestana.Click += (sender, e) =>
+        item.Click += (_, _) =>
         {
             Seleccionar(nombre);
             cambiarVista(nombre);
         };
 
-        barra.Controls.Add(pestana);
+        lista.Controls.Add(item);
     }
 
-    // Actualiza el indicador de la sección seleccionada
-    private void Seleccionar(string nombre)
+    public void Seleccionar(string nombre)
     {
-        foreach (Control control in barra.Controls)
+        foreach (Control control in lista.Controls)
         {
-            if (control is PestanaNavegacion pestana)
+            if (control is ElementoNavegacion item)
             {
-                pestana.Activa = pestana.Nombre == nombre;
-                pestana.Invalidate();
+                item.Activo = item.Nombre == nombre;
+                item.Invalidate();
             }
         }
     }
 }
 
-// Pestaña con estados visuales personalizados
-internal class PestanaNavegacion : Control
+// Elemento dibujado con estados normal, hover y activo
+internal sealed class ElementoNavegacion : Control
 {
+    private readonly string nombre;
+    private readonly string icono;
+    private bool activo;
     private bool encima;
+
+    public string Nombre => nombre;
+
     
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public string Nombre { get; set; } = "";
-
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public bool Activa { get; set; }
-
-    public PestanaNavegacion()
+    public bool Activo
     {
+        get => activo;
+        set
+        {
+            activo = value;
+            Invalidate();
+        }
+    }
+
+
+    public ElementoNavegacion(
+        string nombre, string icono)
+    {
+        this.nombre = nombre;
+        this.icono = icono;
+
         Cursor = Cursors.Hand;
         DoubleBuffered = true;
-        BackColor = TransRedTheme.Superficie;
+        BackColor = TransRedTheme.SuperficieAlterna;
+        TabStop = true;
+
+        AccessibleName = nombre;
+        AccessibleRole = AccessibleRole.PushButton;
     }
 
     protected override void OnMouseEnter(EventArgs e)
@@ -105,51 +175,103 @@ internal class PestanaNavegacion : Control
         Invalidate();
     }
 
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+
+        if (e.KeyCode == Keys.Enter ||
+            e.KeyCode == Keys.Space)
+        {
+            OnClick(EventArgs.Empty);
+            e.Handled = true;
+        }
+    }
+
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
 
-        Color texto = Activa
-            ? TransRedTheme.Acento
-            : encima
-                ? TransRedTheme.Tinta
-                : TransRedTheme.TextoSecundario;
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
 
-        using var fuente = new Font(
-            "Segoe UI",
-            9,
-            Activa ? FontStyle.Bold : FontStyle.Regular
+        Rectangle area = new Rectangle(
+            1, 1,
+            Math.Max(1, Width - 3),
+            Math.Max(1, Height - 3)
         );
 
-        var rectangulo = new Rectangle(
-            0, 0, Width, Height - 3
+        if (activo)
+        {
+            using var fondo = new LinearGradientBrush(
+                area,
+                TransRedTheme.Acento,
+                TransRedTheme.Bosque,
+                LinearGradientMode.Horizontal
+            );
+
+            using var forma = FormaRedondeada(area, 13);
+            g.FillPath(fondo, forma);
+        }
+        else if (encima || Focused)
+        {
+            using var fondo = new SolidBrush(
+                TransRedTheme.AcentoSuave);
+
+            using var forma = FormaRedondeada(area, 13);
+            g.FillPath(fondo, forma);
+        }
+
+        Color color = activo
+            ? Color.White
+            : TransRedTheme.Tinta;
+
+        using var fuenteIcono =
+            new Font("Segoe UI Symbol", 16);
+
+        using var fuenteTexto = new Font(
+            "Segoe UI",
+            9.5f,
+            activo ? FontStyle.Bold : FontStyle.Regular
         );
 
         TextRenderer.DrawText(
-            e.Graphics,
-            Nombre,
-            fuente,
-            rectangulo,
-            texto,
+            g,
+            icono,
+            fuenteIcono,
+            new Rectangle(13, 0, 29, Height),
+            color,
             TextFormatFlags.HorizontalCenter |
-            TextFormatFlags.VerticalCenter |
-            TextFormatFlags.SingleLine
+            TextFormatFlags.VerticalCenter
         );
 
-        // Línea que identifica la sección activa
-        if (Activa)
-        {
-            using var pincel = new SolidBrush(
-                TransRedTheme.Acento
-            );
+        TextRenderer.DrawText(
+            g,
+            nombre,
+            fuenteTexto,
+            new Rectangle(
+                50, 0,
+                Math.Max(1, Width - 55),
+                Height
+            ),
+            color,
+            TextFormatFlags.Left |
+            TextFormatFlags.VerticalCenter |
+            TextFormatFlags.EndEllipsis
+        );
+    }
 
-            e.Graphics.FillRectangle(
-                pincel,
-                0,
-                Height - 3,
-                Width,
-                2
-            );
-        }
+    private static GraphicsPath FormaRedondeada(
+        Rectangle r, int radio)
+    {
+        var p = new GraphicsPath();
+        int d = radio * 2;
+
+        p.AddArc(r.Left, r.Top, d, d, 180, 90);
+        p.AddArc(r.Right - d, r.Top, d, d, 270, 90);
+        p.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+        p.AddArc(r.Left, r.Bottom - d, d, d, 90, 90);
+        p.CloseFigure();
+
+        return p;
     }
 }

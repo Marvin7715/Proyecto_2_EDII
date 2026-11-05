@@ -1,13 +1,16 @@
-﻿using System;
+﻿
+using System;
 using System.Drawing;
 using System.Globalization;
 using System.Windows.Forms;
 using TransRed.Core.Modelos;
 using TransRed.Core.Servicios;
+using TransRed.Interfaz.Components;
 using TransRed.Interfaz.Design;
 
 namespace TransRed.Interfaz.Views;
 
+// Gestión visual de las paradas existentes
 public class VistaParadas : UserControl
 {
     private readonly IGestorTransporte gestor;
@@ -17,8 +20,10 @@ public class VistaParadas : UserControl
     private readonly TextBox txtLatitud;
     private readonly TextBox txtLongitud;
     private readonly TextBox txtBusqueda;
+
     private readonly DataGridView tabla;
     private readonly Label lblEstado;
+    private readonly Label lblCantidad;
 
     public VistaParadas(IGestorTransporte gestor)
     {
@@ -26,28 +31,35 @@ public class VistaParadas : UserControl
 
         Dock = DockStyle.Fill;
         BackColor = TransRedTheme.Fondo;
-        Padding = new Padding(25, 20, 25, 20);
+        Padding = new Padding(24, 20, 24, 20);
 
-        txtCodigo = CrearEntrada("Código de parada");
+        txtCodigo = CrearEntrada("Ej. XELA");
         txtNombre = CrearEntrada("Nombre de la parada");
         txtLatitud = CrearEntrada("Ej. 14.6349");
         txtLongitud = CrearEntrada("Ej. -90.5069");
-        txtBusqueda = CrearEntrada("Código de la parada");
+        txtBusqueda = CrearEntrada("Buscar por código");
+
+        tabla = CrearTabla();
 
         lblEstado = new Label
         {
+            Text = "Selecciona una parada o registra una nueva",
             Dock = DockStyle.Fill,
             ForeColor = TransRedTheme.TextoSecundario,
             Font = new Font("Segoe UI", 9),
-            Text = "Registra una nueva parada o consulta las existentes.",
             TextAlign = ContentAlignment.MiddleLeft,
             AutoEllipsis = true
         };
 
-        tabla = CrearTabla();
+        lblCantidad = new Label
+        {
+            Dock = DockStyle.Fill,
+            ForeColor = TransRedTheme.Acento,
+            Font = new Font("Segoe UI", 9, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleRight
+        };
 
         Controls.Add(CrearContenido());
-
         ActualizarTabla();
     }
 
@@ -58,6 +70,7 @@ public class VistaParadas : UserControl
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 3,
+            Margin = Padding.Empty,
             BackColor = TransRedTheme.Fondo
         };
 
@@ -65,7 +78,7 @@ public class VistaParadas : UserControl
             new ColumnStyle(SizeType.Percent, 100));
 
         principal.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 65));
+            new RowStyle(SizeType.Absolute, 100));
 
         principal.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
@@ -73,150 +86,391 @@ public class VistaParadas : UserControl
         principal.RowStyles.Add(
             new RowStyle(SizeType.Absolute, 42));
 
-        var titulo = new Label
+        var encabezado = new TableLayoutPanel
         {
-            Text = "GESTIÓN DE PARADAS",
             Dock = DockStyle.Fill,
-            Font = new Font("Segoe UI", 17, FontStyle.Bold),
-            ForeColor = TransRedTheme.Tinta,
-            TextAlign = ContentAlignment.MiddleLeft
+            ColumnCount = 1,
+            RowCount = 3,
+            BackColor = TransRedTheme.Fondo
         };
 
-        var contenido = new TableLayoutPanel
+        encabezado.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 22));
+
+        encabezado.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 47));
+
+        encabezado.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
+
+        encabezado.Controls.Add(
+            CrearTexto(
+                "RED DE TRANSPORTE / PARADAS",
+                8,
+                TransRedTheme.Cobre,
+                true), 0, 0);
+
+        encabezado.Controls.Add(
+            CrearTexto(
+                "Paradas de la red",
+                22,
+                TransRedTheme.Tinta,
+                true), 0, 1);
+
+        encabezado.Controls.Add(
+            CrearTexto(
+                "Consulta y organiza los puntos de la red",
+                9.5f,
+                TransRedTheme.TextoSecundario),
+            0, 2);
+
+        var cuerpo = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
             RowCount = 1,
-            BackColor = TransRedTheme.Fondo
+            BackColor = TransRedTheme.Fondo,
+            Margin = Padding.Empty
         };
 
-        contenido.ColumnStyles.Add(
-            new ColumnStyle(SizeType.Absolute, 340));
+        cuerpo.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Absolute, 335));
 
-        contenido.ColumnStyles.Add(
+        cuerpo.ColumnStyles.Add(
             new ColumnStyle(SizeType.Percent, 100));
 
-        contenido.RowStyles.Add(
+        cuerpo.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
-        contenido.Controls.Add(CrearPanelFormulario(), 0, 0);
-        contenido.Controls.Add(CrearPanelTabla(), 1, 0);
+        cuerpo.Controls.Add(CrearFormulario(), 0, 0);
+        cuerpo.Controls.Add(CrearListado(), 1, 0);
 
-        principal.Controls.Add(titulo, 0, 0);
-        principal.Controls.Add(contenido, 0, 1);
+        principal.Controls.Add(encabezado, 0, 0);
+        principal.Controls.Add(cuerpo, 0, 1);
         principal.Controls.Add(lblEstado, 0, 2);
 
         return principal;
     }
 
-    private Control CrearPanelFormulario()
+    private Control CrearFormulario()
     {
-        var panel = new TableLayoutPanel
+        var tarjeta = CrearTarjeta(
+            new Padding(20),
+            new Padding(0, 0, 14, 0)
+        );
+
+        var contenido = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 11,
-            Padding = new Padding(18),
-            Margin = new Padding(0, 0, 15, 0),
-            BackColor = TransRedTheme.Superficie
+            RowCount = 12,
+            Margin = Padding.Empty,
+            BackColor = Color.Transparent
         };
 
-        panel.ColumnStyles.Add(
+        contenido.ColumnStyles.Add(
             new ColumnStyle(SizeType.Percent, 100));
 
-        float[] alturas =
+        int[] alturas =
         {
-            35, 28, 43, 28, 43, 28, 43, 28, 43, 48, 48
+            52, 24, 45, 24, 45, 24,
+            45, 24, 45, 62, 54
         };
 
-        foreach (float altura in alturas)
+        foreach (int alto in alturas)
         {
-            panel.RowStyles.Add(
-                new RowStyle(SizeType.Absolute, altura));
+            contenido.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, alto));
         }
 
-        panel.Controls.Add(CrearEtiqueta("Nueva parada"), 0, 0);
-        panel.Controls.Add(CrearEtiqueta("CÓDIGO"), 0, 1);
-        panel.Controls.Add(txtCodigo, 0, 2);
-        panel.Controls.Add(CrearEtiqueta("NOMBRE"), 0, 3);
-        panel.Controls.Add(txtNombre, 0, 4);
-        panel.Controls.Add(CrearEtiqueta("LATITUD"), 0, 5);
-        panel.Controls.Add(txtLatitud, 0, 6);
-        panel.Controls.Add(CrearEtiqueta("LONGITUD"), 0, 7);
-        panel.Controls.Add(txtLongitud, 0, 8);
+        contenido.RowStyles.Add(
+            new RowStyle(SizeType.Percent, 100));
 
-        var btnRegistrar = CrearBoton("Registrar parada", true);
-        btnRegistrar.Click += (sender, e) => Registrar();
+        contenido.Controls.Add(
+            CrearTexto(
+                "Nueva parada", 16,
+                TransRedTheme.Tinta, true),
+            0, 0);
 
-        var btnLimpiar = CrearBoton("Limpiar campos", false);
-        btnLimpiar.Click += (sender, e) => LimpiarCampos();
+        AgregarCampo(contenido, "CÓDIGO", txtCodigo, 1);
+        AgregarCampo(contenido, "NOMBRE", txtNombre, 3);
+        AgregarCampo(contenido, "LATITUD", txtLatitud, 5);
+        AgregarCampo(contenido, "LONGITUD", txtLongitud, 7);
 
-        panel.Controls.Add(btnRegistrar, 0, 9);
-        panel.Controls.Add(btnLimpiar, 0, 10);
+        var btnRegistrar = new Button
+        {
+            Text = "Registrar parada",
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 8, 0, 8)
+        };
 
-        return panel;
+        UiStyles.AplicarBotonPrincipal(btnRegistrar);
+        btnRegistrar.Click += (_, _) => Registrar();
+
+        var btnLimpiar = new Button
+        {
+            Text = "Limpiar campos",
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 4, 0, 8)
+        };
+
+        UiStyles.AplicarBotonSecundario(btnLimpiar);
+        btnLimpiar.Click += (_, _) => LimpiarCampos();
+
+        contenido.Controls.Add(btnRegistrar, 0, 9);
+        contenido.Controls.Add(btnLimpiar, 0, 10);
+
+        tarjeta.Controls.Add(contenido);
+        return tarjeta;
     }
 
-    private Control CrearPanelTabla()
+    private Control CrearListado()
     {
-        var panel = new TableLayoutPanel
+        var tarjeta = CrearTarjeta(
+            new Padding(20),
+            Padding.Empty
+        );
+
+        var contenido = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
             RowCount = 4,
-            Padding = new Padding(18),
-            BackColor = TransRedTheme.Superficie
+            Margin = Padding.Empty,
+            BackColor = Color.Transparent
         };
 
-        panel.ColumnStyles.Add(
+        contenido.ColumnStyles.Add(
             new ColumnStyle(SizeType.Percent, 100));
 
-        panel.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 35));
+        contenido.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 55));
 
-        panel.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 48));
+        contenido.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 61));
 
-        panel.RowStyles.Add(
+        contenido.RowStyles.Add(
             new RowStyle(SizeType.Percent, 100));
 
-        panel.RowStyles.Add(
-            new RowStyle(SizeType.Absolute, 48));
+        contenido.RowStyles.Add(
+            new RowStyle(SizeType.Absolute, 62));
 
-        panel.Controls.Add(
-            CrearEtiqueta("Paradas registradas"),
+        var titulo = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = Color.Transparent
+        };
+
+        titulo.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Percent, 100));
+
+        titulo.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Absolute, 160));
+
+        titulo.Controls.Add(
+            CrearTexto(
+                "Paradas registradas", 15,
+                TransRedTheme.Tinta, true),
             0, 0);
+
+        titulo.Controls.Add(lblCantidad, 1, 0);
 
         var busqueda = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
-            RowCount = 1
+            RowCount = 1,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0, 0, 0, 10)
         };
 
         busqueda.ColumnStyles.Add(
             new ColumnStyle(SizeType.Percent, 100));
 
         busqueda.ColumnStyles.Add(
-            new ColumnStyle(SizeType.Absolute, 105));
+            new ColumnStyle(SizeType.Absolute, 110));
 
-        var btnBuscar = CrearBoton("Buscar", true);
-        btnBuscar.Click += (sender, e) => Buscar();
+        txtBusqueda.Dock = DockStyle.Fill;
+        txtBusqueda.Margin = new Padding(0, 4, 8, 2);
+
+        txtBusqueda.KeyDown += (_, e) =>
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                Buscar();
+                e.SuppressKeyPress = true;
+            }
+        };
+
+        var btnBuscar = new Button
+        {
+            Text = "Buscar",
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 2, 0, 2)
+        };
+
+        UiStyles.AplicarBotonPrincipal(btnBuscar);
+        btnBuscar.Click += (_, _) => Buscar();
 
         busqueda.Controls.Add(txtBusqueda, 0, 0);
         busqueda.Controls.Add(btnBuscar, 1, 0);
 
-        panel.Controls.Add(busqueda, 0, 1);
-        panel.Controls.Add(tabla, 0, 2);
+        var acciones = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = Color.Transparent,
+            Padding = new Padding(0, 9, 0, 0)
+        };
 
-        var btnEliminar = CrearBoton("Eliminar parada seleccionada", false);
-        btnEliminar.Click += (sender, e) => EliminarSeleccionada();
+        acciones.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Percent, 100));
 
-        panel.Controls.Add(btnEliminar, 0, 3);
+        acciones.ColumnStyles.Add(
+            new ColumnStyle(SizeType.Absolute, 170));
 
-        return panel;
+        var btnEliminar = new Button
+        {
+            Text = "Eliminar seleccionada",
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 0, 12, 0),
+            BackColor = Color.FromArgb(250, 236, 231),
+            ForeColor = TransRedTheme.Error,
+            FlatStyle = FlatStyle.Flat,
+            Cursor = Cursors.Hand,
+            Font = new Font(
+                "Segoe UI", 9, FontStyle.Bold)
+        };
+
+        btnEliminar.FlatAppearance.BorderSize = 0;
+        btnEliminar.Click += (_, _) => EliminarSeleccionada();
+
+        var btnActualizar = new Button
+        {
+            Text = "Actualizar lista",
+            Dock = DockStyle.Fill
+        };
+
+        UiStyles.AplicarBotonSecundario(btnActualizar);
+
+        btnActualizar.Click += (_, _) =>
+        {
+            ActualizarTabla();
+            MostrarEstado("Listado actualizado");
+        };
+
+        acciones.Controls.Add(btnEliminar, 0, 0);
+        acciones.Controls.Add(btnActualizar, 1, 0);
+
+        contenido.Controls.Add(titulo, 0, 0);
+        contenido.Controls.Add(busqueda, 0, 1);
+        contenido.Controls.Add(tabla, 0, 2);
+        contenido.Controls.Add(acciones, 0, 3);
+
+        tarjeta.Controls.Add(contenido);
+        return tarjeta;
     }
 
+    private static GradientSurface CrearTarjeta(
+        Padding padding,
+        Padding margen)
+    {
+        return new GradientSurface(
+            Color.White,
+            Color.FromArgb(252, 251, 247),
+            18)
+        {
+            Dock = DockStyle.Fill,
+            Margin = margen,
+            Padding = padding
+        };
+    }
+
+    private static void AgregarCampo(
+        TableLayoutPanel tabla,
+        string etiqueta,
+        TextBox campo,
+        int fila)
+    {
+        tabla.Controls.Add(
+            CrearTexto(
+                etiqueta, 8,
+                TransRedTheme.TextoSecundario,
+                true),
+            0, fila);
+
+        campo.Dock = DockStyle.Fill;
+        campo.Margin = new Padding(0, 1, 0, 9);
+
+        tabla.Controls.Add(campo, 0, fila + 1);
+    }
+
+    private static Label CrearTexto(
+        string texto,
+        float tamano,
+        Color color,
+        bool negrita = false)
+    {
+        return new Label
+        {
+            Text = texto,
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent,
+            ForeColor = color,
+            Font = new Font(
+                "Segoe UI",
+                tamano,
+                negrita
+                    ? FontStyle.Bold
+                    : FontStyle.Regular),
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoEllipsis = true
+        };
+    }
+
+    private static TextBox CrearEntrada(string sugerencia)
+    {
+        return new TextBox
+        {
+            PlaceholderText = sugerencia,
+            Font = new Font("Segoe UI", 10),
+            BorderStyle = BorderStyle.FixedSingle,
+            BackColor = TransRedTheme.SuperficieAlterna,
+            ForeColor = TransRedTheme.Tinta
+        };
+    }
+
+    private static DataGridView CrearTabla()
+    {
+        var tabla = new DataGridView
+        {
+            Dock = DockStyle.Fill,
+            AllowUserToResizeRows = false,
+            RowHeadersVisible = false
+        };
+
+        UiStyles.AplicarTabla(tabla);
+
+        tabla.Columns.Add("Codigo", "Código");
+        tabla.Columns.Add("Nombre", "Nombre");
+        tabla.Columns.Add("Latitud", "Latitud");
+        tabla.Columns.Add("Longitud", "Longitud");
+
+        tabla.Columns[0].FillWeight = 15;
+        tabla.Columns[1].FillWeight = 49;
+        tabla.Columns[2].FillWeight = 18;
+        tabla.Columns[3].FillWeight = 18;
+
+        tabla.ColumnHeadersHeightSizeMode =
+            DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+
+        return tabla;
+    }
+
+    // Lógica original de registro
     private void Registrar()
     {
         string codigo = txtCodigo.Text.Trim();
@@ -250,7 +504,8 @@ public class VistaParadas : UserControl
 
         if (!gestor.RegistrarParada(parada))
         {
-            MostrarEstado("No se pudo registrar. Comprueba que el código y nombre no estén duplicados.");
+            MostrarEstado(
+                "No se pudo registrar. Comprueba que el código y nombre no estén duplicados.");
             return;
         }
 
@@ -259,13 +514,15 @@ public class VistaParadas : UserControl
         MostrarEstado("Parada registrada correctamente.");
     }
 
+    // Lógica original de búsqueda
     private void Buscar()
     {
         string codigo = txtBusqueda.Text.Trim();
 
         if (string.IsNullOrWhiteSpace(codigo))
         {
-            MostrarEstado("Escribe el código de la parada que deseas buscar.");
+            MostrarEstado(
+                "Escribe el código de la parada que deseas buscar.");
             return;
         }
 
@@ -274,7 +531,8 @@ public class VistaParadas : UserControl
         if (parada == null)
         {
             tabla.ClearSelection();
-            MostrarEstado("No se encontró una parada con ese código.");
+            MostrarEstado(
+                "No se encontró una parada con ese código.");
             return;
         }
 
@@ -282,7 +540,8 @@ public class VistaParadas : UserControl
 
         foreach (DataGridViewRow fila in tabla.Rows)
         {
-            if (fila.Cells[0].Value?.ToString() == parada.Codigo)
+            if (fila.Cells[0].Value?.ToString() ==
+                parada.Codigo)
             {
                 fila.Selected = true;
                 tabla.CurrentCell = fila.Cells[0];
@@ -290,9 +549,11 @@ public class VistaParadas : UserControl
             }
         }
 
-        MostrarEstado($"Parada encontrada: {parada.Nombre}.");
+        MostrarEstado(
+            $"Parada encontrada: {parada.Nombre}.");
     }
 
+    // Lógica original de eliminación
     private void EliminarSeleccionada()
     {
         if (tabla.SelectedRows.Count == 0)
@@ -337,6 +598,9 @@ public class VistaParadas : UserControl
                 parada.Latitud.ToString("F4"),
                 parada.Longitud.ToString("F4"));
         }
+
+        lblCantidad.Text = $"{paradas.Length} paradas";
+        tabla.ClearSelection();
     }
 
     private void LimpiarCampos()
@@ -350,7 +614,8 @@ public class VistaParadas : UserControl
         txtCodigo.Focus();
     }
 
-    private static bool IntentarNumero(string texto, out double numero)
+    private static bool IntentarNumero(
+        string texto, out double numero)
     {
         return double.TryParse(
                    texto,
@@ -368,97 +633,5 @@ public class VistaParadas : UserControl
     private void MostrarEstado(string mensaje)
     {
         lblEstado.Text = mensaje;
-    }
-
-    private static TextBox CrearEntrada(string sugerencia)
-    {
-        return new TextBox
-        {
-            Dock = DockStyle.Fill,
-            Margin = new Padding(0, 3, 0, 5),
-            Font = new Font("Segoe UI", 10),
-            BorderStyle = BorderStyle.FixedSingle,
-            BackColor = Color.FromArgb(247, 249, 247),
-            ForeColor = TransRedTheme.Tinta,
-            PlaceholderText = sugerencia
-        };
-    }
-
-    private static Label CrearEtiqueta(string texto)
-    {
-        return new Label
-        {
-            Text = texto,
-            Dock = DockStyle.Fill,
-            Font = new Font("Segoe UI", 9, FontStyle.Bold),
-            ForeColor = TransRedTheme.TextoSecundario,
-            TextAlign = ContentAlignment.MiddleLeft
-        };
-    }
-
-    private static Button CrearBoton(string texto, bool principal)
-    {
-        return new Button
-        {
-            Text = texto,
-            Dock = DockStyle.Fill,
-            Margin = new Padding(0, 4, 0, 4),
-            FlatStyle = FlatStyle.Flat,
-            BackColor = principal
-                ? TransRedTheme.Acento
-                : TransRedTheme.AcentoSuave,
-            ForeColor = principal
-                ? Color.White
-                : TransRedTheme.Acento,
-            Font = new Font("Segoe UI", 9, FontStyle.Bold),
-            Cursor = Cursors.Hand,
-            FlatAppearance =
-            {
-                BorderSize = 0
-            }
-        };
-    }
-
-    private static DataGridView CrearTabla()
-    {
-        var tabla = new DataGridView
-        {
-            Dock = DockStyle.Fill,
-            BackgroundColor = TransRedTheme.Superficie,
-            BorderStyle = BorderStyle.None,
-            AllowUserToAddRows = false,
-            AllowUserToDeleteRows = false,
-            AllowUserToResizeRows = false,
-            ReadOnly = true,
-            MultiSelect = false,
-            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-            RowHeadersVisible = false,
-            EnableHeadersVisualStyles = false,
-            GridColor = TransRedTheme.Borde,
-            Font = new Font("Segoe UI", 9)
-        };
-
-        tabla.ColumnHeadersDefaultCellStyle.BackColor =
-            TransRedTheme.AcentoSuave;
-
-        tabla.ColumnHeadersDefaultCellStyle.ForeColor =
-            TransRedTheme.Tinta;
-
-        tabla.ColumnHeadersDefaultCellStyle.Font =
-            new Font("Segoe UI", 9, FontStyle.Bold);
-
-        tabla.DefaultCellStyle.SelectionBackColor =
-            TransRedTheme.AcentoSuave;
-
-        tabla.DefaultCellStyle.SelectionForeColor =
-            TransRedTheme.Tinta;
-
-        tabla.Columns.Add("Codigo", "Código");
-        tabla.Columns.Add("Nombre", "Nombre");
-        tabla.Columns.Add("Latitud", "Latitud");
-        tabla.Columns.Add("Longitud", "Longitud");
-
-        return tabla;
     }
 }
